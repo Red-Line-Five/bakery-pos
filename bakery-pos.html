@@ -18,7 +18,7 @@
   --shadow:0 2px 8px rgba(0,0,0,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;width:100%;margin:0;padding:0 14px 20px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;width:100%;margin:0;padding-bottom:20px;}
 
 /* NAV */
 .nav{background:linear-gradient(135deg,#0f4020,var(--g));display:flex;position:sticky;top:0;z-index:100;box-shadow:0 3px 12px rgba(0,0,0,.25);}
@@ -114,7 +114,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .ci-tag-remark{background:var(--al);color:var(--am);}
 .ci-tag-extra{background:#fef9c3;color:#92400e;}
 .ci-tag-price{background:var(--rl);color:var(--r);}
-.ci-tag-delivery{background:var(--bluel);color:var(--blue);}
 .ci-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
 .ci-price{font-size:13px;font-weight:700;color:var(--g);font-family:var(--mono);}
 .qty-row{display:flex;align-items:center;gap:6px;}
@@ -522,7 +521,7 @@ var S={
   rate:90000,bakery:'فرن الأصلي',gsheetUrl:'',adminPass:'1234',
   deliveryFee:0,extras:[]
 };
-var delivery={on:false,name:'',phone:'',address:'',note:'',fee:0};
+var delivery={on:false,name:'',phone:'',address:'',note:''};
 var modalCb=null,_cid=0;
 
 function load(){
@@ -555,7 +554,18 @@ function toggleDelivery(){
   var fields=document.getElementById('delivery-fields');
   var sub=document.getElementById('d-sub');
   if(delivery.on){bar.classList.add('active');tog.classList.add('on');fields.classList.add('show');sub.textContent='أدخل بيانات الزبون';document.getElementById('d-fee').value=S.deliveryFee||0;renderCart();}
-  else{bar.classList.remove('active');tog.classList.remove('on');fields.classList.remove('show');sub.textContent='اضغط لتفعيل التوصيل';renderCart();}
+  else{resetDeliveryOrderState();renderCart();}
+}
+
+function resetDeliveryOrderState(){
+  delivery.on=false;
+  ['d-name','d-phone','d-address','d-note'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var fee=document.getElementById('d-fee');
+  if(fee)fee.value=S.deliveryFee||0;
+  document.getElementById('delivery-bar').classList.remove('active');
+  document.getElementById('d-toggle').classList.remove('on');
+  document.getElementById('delivery-fields').classList.remove('show');
+  document.getElementById('d-sub').textContent='اضغط لتفعيل التوصيل';
 }
 
 // ═══ CATEGORIES ═══
@@ -590,10 +600,10 @@ function buildExtrasChips(itemIdx){
   }).join('');
 }
 
-var _itemFlags={};// itemIdx -> {extras:[]}
+var _itemSelections={};// itemIdx -> {extras:[]}
 function toggleExtra(iIdx,eIdx){
-  if(!_itemFlags[iIdx])_itemFlags[iIdx]={extras:[]};
-  var arr=_itemFlags[iIdx].extras;
+  if(!_itemSelections[iIdx])_itemSelections[iIdx]={extras:[]};
+  var arr=_itemSelections[iIdx].extras;
   var pos=arr.indexOf(eIdx);
   if(pos>=0)arr.splice(pos,1);else arr.push(eIdx);
   var chip=document.getElementById('ec-'+iIdx+'-'+eIdx);
@@ -611,8 +621,8 @@ function togglePanel(i){
 // ═══ ADD MODAL (with extras preview) ═══
 function openAddModal(idx,variant){
   var p=S.products[idx];
-  var flags=_itemFlags[idx]||{extras:[]};
-  var selExtras=flags.extras.map(function(ei){return S.extras[ei];}).filter(Boolean);
+  var sel=_itemSelections[idx]||{extras:[]};
+  var selExtras=sel.extras.map(function(ei){return S.extras[ei];}).filter(Boolean);
   var basePrice=0;
   var varLabel='';
   if(p.type==='pizza'){if(variant==='S'){basePrice=p.priceS;varLabel='S - صغير';}else if(variant==='M'){basePrice=p.priceM;varLabel='M - وسط';}else{basePrice=p.priceL;varLabel='L - كبير';}}
@@ -631,7 +641,7 @@ function openAddModal(idx,variant){
     var remark=document.getElementById('m-remark').value.trim();
     addToCart(idx,variant,selExtras,remark);
     // reset flags for this item
-    _itemFlags[idx]={extras:[]};
+    _itemSelections[idx]={extras:[]};
     renderItems();
     closePanel(idx);
   };
@@ -715,13 +725,14 @@ function printKitchen(){
   if(!S.cart.length){showToast('الطلبية فارغة');return;}
   var now=new Date();var time=now.toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'});var date=now.toLocaleDateString('en-GB');
   var total=calcTotal();var deliveryFee=getDeliveryFee();var grand=total+deliveryFee;
-  var dInfo=delivery.on?('<div class="kt-delivery">🛵 توصيل<br>'+(document.getElementById('d-name').value||'')+'<br>'+(document.getElementById('d-phone').value||'')+'<br>'+(document.getElementById('d-address').value||'')+(document.getElementById('d-note').value?'<br>'+document.getElementById('d-note').value:'')+'</div>'):'';
+  var dInfo=delivery.on?('<div class="kt-delivery">🛵 توصيل<br>'+(document.getElementById('d-name').value||'')+'<br>'+(document.getElementById('d-phone').value||'')+'<br>'+(document.getElementById('d-address').value||'')+(document.getElementById('d-note').value?'<br>'+document.getElementById('d-note').value:'')+(deliveryFee?('<br>رسوم التوصيل: '+fmt(deliveryFee)+' ل.ل'):'')+'</div>'):'';
   document.getElementById('kt').innerHTML='<div class="kt-h">'+S.bakery+'<br>طلبية المطبخ</div><div class="kt-t">'+date+' — '+time+'</div>'+dInfo+S.cart.map(function(c){var p=S.products[c.idx];return'<div class="kt-item"><span class="kt-q">'+c.qty+'x</span> <span class="kt-n">'+p.name+'</span>'+(c.variant?'<div class="kt-d">'+c.variant+'</div>':'')+(c.extras&&c.extras.length?'<div class="kt-d">إضافات: '+c.extras.map(function(e){return e.name;}).join(', ')+'</div>':'')+(c.remark?'<div class="kt-r">⚠️ '+c.remark+'</div>':'')+(c.customPrice!==null?'<div class="kt-r">سعر خاص: '+fmt(c.customPrice)+' ل.ل</div>':'')+'</div>';}).join('')+'<div class="kt-f">المجموع: '+fmt(total)+' ل.ل'+(deliveryFee?' + توصيل '+fmt(deliveryFee)+' = '+fmt(grand)+' ل.ل':'')+'<br>$'+(grand/S.rate).toFixed(2)+'<br>― نهاية الطلبية ―</div>';
   var inv={time:time,date:date,items:S.cart.map(function(c){return{name:S.products[c.idx].name,variant:c.variant,qty:c.qty,remark:c.remark,extras:(c.extras||[]).map(function(e){return e.name;})};}),totalLL:grand,rate:S.rate,delivery:delivery.on,deliveryFee:deliveryFee,deliveryName:document.getElementById('d-name').value,deliveryPhone:document.getElementById('d-phone').value,deliveryAddress:document.getElementById('d-address').value};
   S.invoices.push(inv);persist();
   if(S.gsheetUrl)syncInvoice(inv);
   window.print();showToast('تم الإرسال للمطبخ ✓');
   clearCart();
+  resetDeliveryOrderState();
 }
 
 // ═══ SETTLEMENT ═══
