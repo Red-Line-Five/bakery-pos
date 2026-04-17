@@ -404,6 +404,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
     <div class="frow">
       <div class="flbl">لصق قائمة إضافات جاهزة (JSON)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">يمكنك لصق JSON فقط أو السطر كاملًا مثل: <code style="direction:ltr;display:inline-block">var DEF_EXTRAS = [...]</code></div>
       <textarea class="finput" id="extras-json-input" rows="6" style="font-family:var(--mono);direction:ltr" placeholder='[
   {"id":"x1","name":"خضرة","price":30000},
   {"id":"x2","name":"بندورة","price":10000}
@@ -839,7 +840,11 @@ function importExtrasFromText(){
   var raw=(inp.value||'').trim();
   if(!raw){showToast('ألصق بيانات الإضافات أولاً');return;}
   try{
-    var parsed=JSON.parse(raw);
+    var src=raw;
+    if(/^(var|let|const)\s+DEF_EXTRAS\s*=/.test(src)){
+      src=src.replace(/^(var|let|const)\s+DEF_EXTRAS\s*=\s*/,'').replace(/;\s*$/,'').trim();
+    }
+    var parsed=JSON.parse(src);
     if(!Array.isArray(parsed))throw new Error('invalid');
     var clean=parsed.map(function(e,i){
       return{
