@@ -402,6 +402,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
+    <div class="frow">
+      <div class="flbl">لصق قائمة إضافات جاهزة (JSON)</div>
+      <textarea class="finput" id="extras-json-input" rows="6" style="font-family:var(--mono);direction:ltr" placeholder='[
+  {"id":"x1","name":"خضرة","price":30000},
+  {"id":"x2","name":"بندورة","price":10000}
+]'></textarea>
+      <button class="btn-add" onclick="importExtrasFromText()">استيراد القائمة أعلاه</button>
+    </div>
     <div id="extras-settings-list"></div>
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
   </div>
@@ -817,6 +825,7 @@ function renderSettingsPage(){
   document.getElementById('s-rate').value=S.rate;
   document.getElementById('s-gsheet').value=S.gsheetUrl||'';
   document.getElementById('s-delivery-fee').value=S.deliveryFee||0;
+  document.getElementById('extras-json-input').value=JSON.stringify(S.extras||[],null,2);
   document.getElementById('rate-disp').textContent=fmt(S.rate);
   renderProdRows();renderExtrasSettings();
 }
@@ -825,6 +834,29 @@ function renderExtrasSettings(){
   list.innerHTML=(S.extras||[]).map(function(e,i){return'<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px"><input class="finput" value="'+e.name+'" onchange="S.extras['+i+'].name=this.value" placeholder="اسم الإضافة"><input class="finput" type="number" value="'+e.price+'" onchange="S.extras['+i+'].price=parseInt(this.value)||0" placeholder="السعر" style="width:110px"><button onclick="S.extras.splice('+i+',1);renderExtrasSettings();" style="background:var(--rl);border:1px solid #fca5a5;color:var(--r);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">✕</button></div>';}).join('');
 }
 function addExtraRow(){S.extras.push({id:'x'+Date.now(),name:'',price:0});renderExtrasSettings();}
+function importExtrasFromText(){
+  var inp=document.getElementById('extras-json-input');
+  var raw=(inp.value||'').trim();
+  if(!raw){showToast('ألصق بيانات الإضافات أولاً');return;}
+  try{
+    var parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed))throw new Error('invalid');
+    var clean=parsed.map(function(e,i){
+      return{
+        id:(e&&e.id?String(e.id):'x'+Date.now()+'-'+i),
+        name:(e&&e.name?String(e.name).trim():''),
+        price:Math.max(0,parseInt(e&&e.price,10)||0)
+      };
+    }).filter(function(e){return e.name;});
+    if(!clean.length){showToast('ما في عناصر صالحة');return;}
+    S.extras=clean;
+    inp.value=JSON.stringify(clean,null,2);
+    renderExtrasSettings();
+    showToast('تم استيراد '+clean.length+' إضافة ✓');
+  }catch(e){
+    showToast('صيغة JSON غير صحيحة');
+  }
+}
 function renderProdRows(){
   document.getElementById('prod-count').textContent=S.products.length;
   document.getElementById('prods-list').innerHTML=S.products.map(function(p,i){
