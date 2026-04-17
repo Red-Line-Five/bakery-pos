@@ -18,7 +18,7 @@
   --shadow:0 2px 8px rgba(0,0,0,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;width:100%;margin:0;padding-bottom:20px;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;width:100%;max-width:100%;margin:0;padding-bottom:20px;}
 
 /* NAV */
 .nav{background:linear-gradient(135deg,#0f4020,var(--g));display:flex;position:sticky;top:0;z-index:100;box-shadow:0 3px 12px rgba(0,0,0,.25);}
@@ -63,15 +63,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .cat-btn{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);white-space:nowrap;transition:all .2s;}
 .cat-btn.active{background:var(--g);color:#fff;border-color:var(--g);box-shadow:0 2px 8px rgba(26,107,60,.3);}
 
-/* ITEMS */
-.items-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+/* ITEMS — 3 columns grid */
+.items-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;align-items:start;}
+@media(max-width:900px){.items-list{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:600px){.items-list{grid-template-columns:repeat(2,minmax(0,1fr));}}
 .item-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);transition:all .2s;}
 .item-card:hover{border-color:var(--gm);}
-.item-header{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;cursor:pointer;user-select:none;}
+.item-header{display:flex;flex-direction:column;align-items:flex-start;padding:10px 10px 8px;cursor:pointer;user-select:none;gap:5px;}
 .item-header:active{background:var(--gl);}
-.item-name{font-size:14px;font-weight:700;}
-.item-desc-small{font-size:11px;color:var(--muted);margin-top:2px;}
-.item-price-simple{font-size:13px;font-weight:700;color:var(--g);font-family:var(--mono);white-space:nowrap;background:var(--gl);padding:4px 10px;border-radius:8px;}
+.item-name{font-size:13px;font-weight:700;line-height:1.3;}
+.item-desc-small{font-size:10px;color:var(--muted);}
+.item-price-simple{font-size:12px;font-weight:700;color:var(--g);font-family:var(--mono);white-space:nowrap;background:var(--gl);padding:3px 8px;border-radius:6px;align-self:flex-start;}
+.item-header-hint{font-size:10px;color:var(--muted);}
 .size-panel{display:none;border-top:1.5px solid var(--bg);padding:10px 13px;background:#fafaf8;}
 .size-panel.open{display:block;}
 .size-row{display:flex;gap:8px;margin-bottom:10px;}
@@ -450,71 +453,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<script src="data.js"></script>
 <script>
-// ═══ DEFAULT DATA ═══
-var DEF_EXTRAS = [
-  {id:'x1', name:'خضرة', price:30000},
-  {id:'x2', name:'بندورة', price:10000},
-  {id:'x3', name:'بصل', price:10000},
-  {id:'x4', name:'فليفلة حرة', price:15000},
-  {id:'x5', name:'جبنة إضافية', price:25000},
-  {id:'x6', name:'زيتون', price:20000},
-];
-var DEF = [
-  {cat:'مناقيش',name:'جبنة عكاوي',desc:'',type:'manousheh',priceA:160000,priceB:200000},
-  {cat:'مناقيش',name:'جبنة + ريحان + فطر + حرة',desc:'',type:'manousheh',priceA:200000,priceB:230000},
-  {cat:'مناقيش',name:'4 شيز',desc:'',type:'manousheh',priceA:200000,priceB:230000},
-  {cat:'مناقيش',name:'حلوم',desc:'',type:'manousheh',priceA:200000,priceB:230000},
-  {cat:'مناقيش',name:'قشقوان',desc:'',type:'manousheh',priceA:200000,priceB:250000},
-  {cat:'مناقيش',name:'كوكتيل',desc:'',type:'manousheh',priceA:150000,priceB:180000},
-  {cat:'مناقيش',name:'زعتر',desc:'',type:'manousheh',priceA:50000,priceB:70000},
-  {cat:'مناقيش',name:'زعتر مع حر',desc:'',type:'manousheh',priceA:70000,priceB:100000},
-  {cat:'مناقيش',name:'زعتر مع قشقوان',desc:'',type:'manousheh',priceA:170000,priceB:200000},
-  {cat:'مناقيش',name:'زعتر مع بصل وبندورة',desc:'',type:'manousheh',priceA:120000,priceB:150000},
-  {cat:'مناقيش',name:'كشك',desc:'',type:'manousheh',priceA:150000,priceB:180000},
-  {cat:'مناقيش',name:'كشك وجبنة',desc:'',type:'manousheh',priceA:170000,priceB:200000},
-  {cat:'مناقيش',name:'بصل وبندورة',desc:'',type:'manousheh',priceA:150000,priceB:180000},
-  {cat:'مناقيش',name:'بصل وبندورة مع جبنة',desc:'',type:'manousheh',priceA:170000,priceB:200000},
-  {cat:'مناقيش',name:'محمرة',desc:'',type:'manousheh',priceA:100000,priceB:120000},
-  {cat:'مناقيش',name:'محمرة مع جبنة',desc:'',type:'manousheh',priceA:140000,priceB:170000},
-  {cat:'مناقيش',name:'لبنة',desc:'',type:'manousheh',priceA:150000,priceB:180000},
-  {cat:'مناقيش',name:'مرتديلا وجبنة',desc:'',type:'manousheh',priceA:220000,priceB:250000},
-  {cat:'مناقيش',name:'جبش مدخن وجبنة',desc:'',type:'manousheh',priceA:230000,priceB:280000},
-  {cat:'مناقيش',name:'لحمة',desc:'',type:'manousheh',priceA:230000,priceB:280000},
-  {cat:'مناقيش',name:'لحمة وجبنة',desc:'',type:'manousheh',priceA:250000,priceB:300000},
-  {cat:'مناقيش',name:'سجق',desc:'',type:'manousheh',priceA:230000,priceB:280000},
-  {cat:'مناقيش',name:'سجق وجبنة',desc:'',type:'manousheh',priceA:250000,priceB:300000},
-  {cat:'مناقيش',name:'كفتة',desc:'',type:'manousheh',priceA:250000,priceB:280000},
-  {cat:'مناقيش',name:'كفتة وجبنة',desc:'',type:'manousheh',priceA:250000,priceB:300000},
-  {cat:'مناقيش',name:'بيروني مع جبنة',desc:'',type:'manousheh',priceA:250000,priceB:300000},
-  {cat:'مناقيش',name:'طاووق',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'فاهيتا',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'باربيكيو شيكن',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'تيرياكي شيكن',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'سويت شيكن',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'ديناميت شيكن',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'شيلي شيكن',desc:'',type:'manousheh',priceA:280000,priceB:350000},
-  {cat:'مناقيش',name:'دوبليكس',desc:'',type:'simple',price:200000},
-  {cat:'مناقيش',name:'سباناخ',desc:'مع خضرة',type:'simple',price:100000},
-  {cat:'مناقيش',name:'شوكولا',desc:'',type:'simple',price:180000},
-  {cat:'بيتزا',name:'Pepperoni',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Vegetarian',desc:'',type:'pizza',priceS:400000,priceM:600000,priceL:1000000},
-  {cat:'بيتزا',name:'Margherita',desc:'',type:'pizza',priceS:350000,priceM:550000,priceL:850000},
-  {cat:'بيتزا',name:'4 Cheese',desc:'',type:'pizza',priceS:450000,priceM:650000,priceL:1100000},
-  {cat:'بيتزا',name:'Crazy Franc',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Sujuk',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Lebanese',desc:'',type:'pizza',priceS:450000,priceM:650000,priceL:1100000},
-  {cat:'بيتزا',name:'Fajita',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Sweet and Sour',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Barbecue Chicken',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Teriyaki',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Dynamite Chicken',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Sweet Chili',desc:'',type:'pizza',priceS:500000,priceM:700000,priceL:1150000},
-  {cat:'بيتزا',name:'Sweet Shrimps',desc:'',type:'pizza',priceS:600000,priceM:1000000,priceL:1600000},
-  {cat:'بيتزا',name:'Dynamite Shrimps',desc:'',type:'pizza',priceS:600000,priceM:1000000,priceL:1600000},
-  {cat:'بيتزا',name:'Teriyaki Shrimps',desc:'',type:'pizza',priceS:600000,priceM:1000000,priceL:1600000},
-  {cat:'بيتزا',name:'Sweet Chili Shrimps',desc:'',type:'pizza',priceS:600000,priceM:1000000,priceL:1600000}
-];
+// ═══ DEFAULT DATA loaded from data.js (DEF_EXTRAS + DEF) ═══
+// لتغيير الأصناف أو الإضافات، عدّل ملف data.js فقط
 
 var S={
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
@@ -584,11 +526,11 @@ function renderItems(){
     var i=S.products.indexOf(p);
     var ext= extrasHtml ? '<div class="extras-section"><div class="extras-title">إضافات</div><div class="extras-grid" id="ext-'+i+'">'+buildExtrasChips(i)+'</div></div>' : '';
     if(p.type==='pizza'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div><div class="item-name">'+p.name+'</div><div class="item-desc-small">اختر الحجم ▾</div></div><span style="font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:4px 10px;border-radius:8px">'+fmt(p.priceS)+'+</span></div><div class="size-panel" id="sp-'+i+'"><div class="size-row"><div class="size-btn" onclick="openAddModal('+i+',\'S\')"><div class="size-lbl">S</div><div class="size-desc">صغير</div><div class="size-price">'+fmt(p.priceS)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'M\')"><div class="size-lbl">M</div><div class="size-desc">وسط</div><div class="size-price">'+fmt(p.priceM)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'L\')"><div class="size-lbl">L</div><div class="size-desc">كبير</div><div class="size-price">'+fmt(p.priceL)+'</div></div></div>'+ext+'</div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceS)+'+</span><div class="item-header-hint">اختر الحجم ▾</div></div><div class="size-panel" id="sp-'+i+'"><div class="size-row"><div class="size-btn" onclick="openAddModal('+i+',\'S\')"><div class="size-lbl">S</div><div class="size-desc">صغير</div><div class="size-price">'+fmt(p.priceS)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'M\')"><div class="size-lbl">M</div><div class="size-desc">وسط</div><div class="size-price">'+fmt(p.priceM)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'L\')"><div class="size-lbl">L</div><div class="size-desc">كبير</div><div class="size-price">'+fmt(p.priceL)+'</div></div></div>'+ext+'</div></div>';
     }else if(p.type==='manousheh'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div><div class="item-name">'+p.name+'</div><div class="item-desc-small">عادي / مشروحة ▾</div></div><span style="font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:4px 10px;border-radius:8px">'+fmt(p.priceA)+'+</span></div><div class="type-panel" id="sp-'+i+'"><div class="type-grid"><div class="type-btn" onclick="openAddModal('+i+',\'عادي\')"><div class="type-lbl">عادي</div><div class="type-price">'+fmt(p.priceA)+' ل.ل</div></div><div class="type-btn" onclick="openAddModal('+i+',\'مشروحة\')"><div class="type-lbl">مشروحة</div><div class="type-price">'+fmt(p.priceB)+' ل.ل</div></div></div>'+ext+'</div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceA)+'+</span><div class="item-header-hint">عادي / مشروحة ▾</div></div><div class="type-panel" id="sp-'+i+'"><div class="type-grid"><div class="type-btn" onclick="openAddModal('+i+',\'عادي\')"><div class="type-lbl">عادي</div><div class="type-price">'+fmt(p.priceA)+' ل.ل</div></div><div class="type-btn" onclick="openAddModal('+i+',\'مشروحة\')"><div class="type-lbl">مشروحة</div><div class="type-price">'+fmt(p.priceB)+' ل.ل</div></div></div>'+ext+'</div></div>';
     }else{
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div><div class="item-name">'+p.name+'</div>'+(p.desc?'<div class="item-desc-small">'+p.desc+'</div>':'')+'</div><span class="item-price-simple">'+fmt(p.price)+' ل.ل</span></div><div class="size-panel" id="sp-'+i+'">'+ext+'<div style="margin-top:8px"><button style="background:var(--g);color:#fff;border:none;border-radius:9px;padding:9px 20px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;width:100%" onclick="openAddModal('+i+',null)">إضافة للطلبية +</button></div></div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div>'+(p.desc?'<div class="item-desc-small">'+p.desc+'</div>':'')+'<span class="item-price-simple">'+fmt(p.price)+' ل.ل</span></div><div class="size-panel" id="sp-'+i+'">'+ext+'<div style="margin-top:8px"><button style="background:var(--g);color:#fff;border:none;border-radius:9px;padding:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%" onclick="openAddModal('+i+',null)">+ إضافة</button></div></div></div>';
     }
   }).join('');
 }
