@@ -11,7 +11,7 @@ var DEF_EXTRAS = [
   {id:'x3', name:'جريش',            price:30000},
   {id:'x4', name:'أسمر',            price:30000},
   {id:'x5', name:'عسكر',     price:-20000},
-  {id:'x6', name:'محمصة',   price:25000},
+  {id:'x6', name:'محمصة',   price:0},
 
 ];
 
@@ -21,7 +21,8 @@ var DEF_EXTRAS = [
 //    مثال: ['x1','x5'] ويمكن إضافة أي id جديد لاحقاً
 var DEF_EXTRA_IDS_BY_TYPE = {
   manousheh: '*',
-  pizza: ['x1', 'x5']
+  pizza: ['x1', 'x5'],
+ simple: [ 'x5']
 };
 
 // ── قائمة الأصناف ────────────────────────────────────────────
@@ -93,15 +94,15 @@ var DEF = [
   {cat:'معجنات', name:'دزينة معجنات',                    desc:'', type:'simple',    price:300000},
   {cat:'معجنات', name:'دزينة معجنات دجاج',                    desc:'', type:'simple',    price:350000},
   {cat:'معجنات', name:'دزينة سباناخ',                    desc:'', type:'simple',    price:300000},
-  {cat:'معجنات', name:'دزينة صفيحة بعلبكية',                    desc:'', type:'simple',    price:180000},
+  {cat:'معجنات', name:'دزينة صفيحة بعلبكية',                    desc:'', type:'simple',    price:350000},
 
   // ── المشروبات────────────────────────────────────────────────
-  {cat:'مشروبات', name:'PEPSI',                    desc:'', type:'',    price:80000},
-  {cat:'مشروبات', name:'DIET PEPSI',                    desc:'', type:'',    price:80000},
+  {cat:'مشروبات', name:'PEPSI',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'DIET PEPSI',                    desc:'', type:'simple',    price:80000},
   {cat:'مشروبات', name:'7 UP',                    desc:'', type:'',    price:80000},
-  {cat:'مشروبات', name:'DIET 7 UP',                    desc:'', type:'',    price:80000},
-  {cat:'مشروبات', name:'لبن عيران',                    desc:'', type:'',    price:60000},
-  {cat:'مشروبات', name:'TOP juice',                    desc:'', type:'',    price:25000},
-  {cat:'مشروبات', name:'WATER',                    desc:'', type:'',    price:25000},
+  {cat:'مشروبات', name:'DIET 7 UP',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'لبن عيران',                    desc:'', type:'simple',    price:60000},
+  {cat:'مشروبات', name:'TOP juice',                    desc:'', type:'simple',    price:25000},
+  {cat:'مشروبات', name:'WATER',                    desc:'', type:'simple',    price:25000},
 
 ];
