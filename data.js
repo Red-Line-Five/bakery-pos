@@ -87,17 +87,13 @@ var DEF = [
   {cat:'معجنات', name:'دزينة صفيحة بعلبكية',                    desc:'', type:'simple',    price:180000},
 
   // ── المشروبات────────────────────────────────────────────────
-  {cat:'مشروبات', name:'PEPSI',                    desc:'', type:'simple',    price:80000},
-  {cat:'مشروبات', name:'DIET PEPSI',                    desc:'', type:'simple',    price:80000},
-  {cat:'مشروبات', name:'7UP',                    desc:'', type:'simple',    price:80000},
-  {cat:'مشروبات', name:'DIET 7 UP',                    desc:'', type:'simple',    price:80000},
-  {cat:'مشروبات', name:'لبن عيران',                    desc:'', type:'simple',    price:60000},
-  {cat:'مشروبات', name:'TOP juice',                    desc:'', type:'simple',    price:25000},
-  {cat:'مشروبات', name:'WATER',                    desc:'', type:'simple',    price:25000},
+  {cat:'مشروبات', name:'PEPSI',                    desc:'', type:'',    price:80000},
+  {cat:'مشروبات', name:'DIET PEPSI',                    desc:'', type:'',    price:80000},
+  {cat:'مشروبات', name:'7 UP',                    desc:'', type:'',    price:80000},
+  {cat:'مشروبات', name:'DIET 7 UP',                    desc:'', type:'',    price:80000},
+  {cat:'مشروبات', name:'لبن عيران',                    desc:'', type:'',    price:60000},
+  {cat:'مشروبات', name:'TOP juice',                    desc:'', type:'',    price:25000},
+  {cat:'مشروبات', name:'WATER',                    desc:'', type:'',    price:25000},
 
 ];
-// ════════════════════════════════════════════════════════════
-//  لإضافة صنف جديد: انسخ سطر وعدّله
-//  لتغيير سعر: عدّل الرقم مباشرة
-//  لحذف صنف: احذف السطر كاملاً
-// ════════════════════════════════════════════════════════════
+
