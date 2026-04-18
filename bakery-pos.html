@@ -573,21 +573,38 @@ function itemAllowsExtras(item){
   if(item.noExtras===true||item.allowExtras===false)return false;
   return item.cat!=='مشروبات';
 }
-function buildExtrasHtml(item){return S.extras.length>0&&itemAllowsExtras(item);}
+function getAllowedExtraIds(item){
+  if(!item||!itemAllowsExtras(item))return [];
+  if(Array.isArray(item.allowedExtraIds))return item.allowedExtraIds;
+  if(typeof item.allowedExtraIds==='string'&&item.allowedExtraIds==='*')return '*';
+  if(typeof DEF_EXTRA_IDS_BY_TYPE==='object'&&DEF_EXTRA_IDS_BY_TYPE){
+    var byType=DEF_EXTRA_IDS_BY_TYPE[item.type];
+    if(Array.isArray(byType))return byType;
+    if(byType==='*')return '*';
+  }
+  return '*';
+}
+function getAllowedExtras(item){
+  var allowed=getAllowedExtraIds(item);
+  if(allowed==='*')return S.extras.slice();
+  return S.extras.filter(function(e){return allowed.indexOf(e.id)>=0;});
+}
+function buildExtrasHtml(item){return getAllowedExtras(item).length>0&&itemAllowsExtras(item);}
 function buildExtrasChips(itemIdx){
-  return S.extras.map(function(e,ei){
-    return'<div class="extra-chip" id="ec-'+itemIdx+'-'+ei+'" onclick="toggleExtra('+itemIdx+','+ei+')"><div class="e-check" id="eck-'+itemIdx+'-'+ei+'"></div><div class="e-lbl">'+e.name+'</div><div class="e-price">+'+fmt(e.price)+'</div></div>';
+  var item=S.products[itemIdx];
+  return getAllowedExtras(item).map(function(e){
+    return'<div class="extra-chip" id="ec-'+itemIdx+'-'+e.id+'" onclick="toggleExtra('+itemIdx+',\''+e.id+'\')"><div class="e-check" id="eck-'+itemIdx+'-'+e.id+'"></div><div class="e-lbl">'+e.name+'</div><div class="e-price">+'+fmt(e.price)+'</div></div>';
   }).join('');
 }
 
 var _itemSelections={};// itemIdx -> {extras:[]}
-function toggleExtra(iIdx,eIdx){
+function toggleExtra(iIdx,eId){
   if(!_itemSelections[iIdx])_itemSelections[iIdx]={extras:[]};
   var arr=_itemSelections[iIdx].extras;
-  var pos=arr.indexOf(eIdx);
-  if(pos>=0)arr.splice(pos,1);else arr.push(eIdx);
-  var chip=document.getElementById('ec-'+iIdx+'-'+eIdx);
-  var check=document.getElementById('eck-'+iIdx+'-'+eIdx);
+  var pos=arr.indexOf(eId);
+  if(pos>=0)arr.splice(pos,1);else arr.push(eId);
+  var chip=document.getElementById('ec-'+iIdx+'-'+eId);
+  var check=document.getElementById('eck-'+iIdx+'-'+eId);
   if(chip){chip.classList.toggle('selected',pos<0);}
   if(check){check.textContent=pos<0?'✓':'';}
 }
@@ -603,7 +620,10 @@ function openAddModal(idx,variant){
   var p=S.products[idx];
   var canUseExtras=itemAllowsExtras(p);
   var sel=canUseExtras?(_itemSelections[idx]||{extras:[]}):{extras:[]};
-  var selExtras=sel.extras.map(function(ei){return S.extras[ei];}).filter(Boolean);
+  var allowedExtras=getAllowedExtras(p);
+  var allowedById={};
+  allowedExtras.forEach(function(e){allowedById[e.id]=e;});
+  var selExtras=sel.extras.map(function(eid){return allowedById[eid];}).filter(Boolean);
   var basePrice=0;
   var varLabel='';
   if(p.type==='pizza'){if(variant==='S'){basePrice=p.priceS;varLabel='S - صغير';}else if(variant==='M'){basePrice=p.priceM;varLabel='M - وسط';}else{basePrice=p.priceL;varLabel='L - كبير';}}
@@ -633,6 +653,10 @@ function openAddModal(idx,variant){
 function addToCart(idx,variant,extras,remark){
   var p=S.products[idx];var unitPrice=p.price||0;var varLabel='';
   if(!itemAllowsExtras(p))extras=[];
+  else{
+    var allowedIds=getAllowedExtras(p).map(function(e){return e.id;});
+    extras=(extras||[]).filter(function(e){return allowedIds.indexOf(e.id)>=0;});
+  }
   if(p.type==='pizza'){if(variant==='S'){unitPrice=p.priceS;varLabel='S - صغير';}else if(variant==='M'){unitPrice=p.priceM;varLabel='M - وسط';}else if(variant==='L'){unitPrice=p.priceL;varLabel='L - كبير';}}
   else if(p.type==='manousheh'){if(variant==='عادي'){unitPrice=p.priceA;varLabel='عادي';}else if(variant==='مشروحة'){unitPrice=p.priceB;varLabel='مشروحة';}}
   var extrasTotal=(extras||[]).reduce(function(s,e){return s+e.price;},0);
