@@ -19,6 +19,7 @@ var DEF_EXTRAS = [
 //  type: 'manousheh'  → priceA (عادي) + priceB (مشروحة)
 //  type: 'pizza'      → priceS (صغير) + priceM (وسط) + priceL (كبير)
 //  type: 'simple'     → price (سعر واحد)
+
 // ─────────────────────────────────────────────────────────────
 var DEF = [
 
@@ -78,6 +79,21 @@ var DEF = [
   {cat:'بيتزا', name:'Dynamite Shrimps', desc:'', type:'pizza', priceS:600000, priceM:1000000, priceL:1600000},
   {cat:'بيتزا', name:'Teriyaki Shrimps', desc:'', type:'pizza', priceS:600000, priceM:1000000, priceL:1600000},
   {cat:'بيتزا', name:'Sweet Chili Shrimps', desc:'', type:'pizza', priceS:600000, priceM:1000000, priceL:1600000},
+
+  // ── معجنات────────────────────────────────────────────────
+  {cat:'معجنات', name:'دزينة معجنات',                    desc:'', type:'simple',    price:300000},
+  {cat:'معجنات', name:'دزينة معجنات دجاج',                    desc:'', type:'simple',    price:350000},
+  {cat:'معجنات', name:'دزينة سباناخ',                    desc:'', type:'simple',    price:300000},
+  {cat:'معجنات', name:'دزينة صفيحة بعلبكية',                    desc:'', type:'simple',    price:180000},
+
+  // ── المشروبات────────────────────────────────────────────────
+  {cat:'مشروبات', name:'PEPSI',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'DIET PEPSI',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'7UP',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'DIET 7 UP',                    desc:'', type:'simple',    price:80000},
+  {cat:'مشروبات', name:'لبن عيران',                    desc:'', type:'simple',    price:60000},
+  {cat:'مشروبات', name:'TOP juice',                    desc:'', type:'simple',    price:25000},
+  {cat:'مشروبات', name:'WATER',                    desc:'', type:'simple',    price:25000},
 
 ];
 // ════════════════════════════════════════════════════════════
