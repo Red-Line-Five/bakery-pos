@@ -495,20 +495,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 var S={
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
   rate:90000,bakery:'فرن الأصلي',gsheetUrl:'',adminPass:'1234',
-  deliveryFee:0,extras:[],orderNum:0
+  deliveryFee:0,extras:[],orderNum:0,dataSignature:''
 };
 var delivery={on:false,name:'',phone:'',address:'',note:''};
-var modalCb=null,_cid=0;
+var modalCb=null,modalCtx=null,_cid=0;
+
+function getDataSignature(){
+  try{
+    return JSON.stringify({
+      def:DEF,
+      extras:DEF_EXTRAS,
+      extraIdsByType:(typeof DEF_EXTRA_IDS_BY_TYPE==='object'&&DEF_EXTRA_IDS_BY_TYPE)?DEF_EXTRA_IDS_BY_TYPE:{}
+    });
+  }catch(e){
+    return '';
+  }
+}
 
 function load(){
+  var sig=getDataSignature();
   try{
     var d=localStorage.getItem('asli_v5');
-    if(d){var p=JSON.parse(d);S.products=p.products||JSON.parse(JSON.stringify(DEF));S.invoices=p.invoices||[];S.settlements=p.settlements||[];S.masarif=p.masarif||[];S.rate=p.rate||90000;S.bakery=p.bakery||'فرن الأصلي';S.gsheetUrl=p.gsheetUrl||'';S.adminPass=p.adminPass||'1234';S.deliveryFee=p.deliveryFee||0;S.extras=p.extras||JSON.parse(JSON.stringify(DEF_EXTRAS));S.orderNum=p.orderNum||0;}
-    else{S.products=JSON.parse(JSON.stringify(DEF));S.extras=JSON.parse(JSON.stringify(DEF_EXTRAS));}
-  }catch(e){S.products=JSON.parse(JSON.stringify(DEF));S.extras=JSON.parse(JSON.stringify(DEF_EXTRAS));}
+    if(d){
+      var p=JSON.parse(d);
+      var defaultsChanged=!!sig&&sig!==p.dataSignature;
+      S.products=defaultsChanged?JSON.parse(JSON.stringify(DEF)):(p.products||JSON.parse(JSON.stringify(DEF)));
+      S.extras=defaultsChanged?JSON.parse(JSON.stringify(DEF_EXTRAS)):(p.extras||JSON.parse(JSON.stringify(DEF_EXTRAS)));
+      S.invoices=p.invoices||[];
+      S.settlements=p.settlements||[];
+      S.masarif=p.masarif||[];
+      S.rate=p.rate||90000;
+      S.bakery=p.bakery||'فرن الأصلي';
+      S.gsheetUrl=p.gsheetUrl||'';
+      S.adminPass=p.adminPass||'1234';
+      S.deliveryFee=p.deliveryFee||0;
+      S.orderNum=p.orderNum||0;
+    }else{
+      S.products=JSON.parse(JSON.stringify(DEF));
+      S.extras=JSON.parse(JSON.stringify(DEF_EXTRAS));
+    }
+  }catch(e){
+    S.products=JSON.parse(JSON.stringify(DEF));
+    S.extras=JSON.parse(JSON.stringify(DEF_EXTRAS));
+  }
+  S.dataSignature=sig;
 }
 function persist(){
-  try{localStorage.setItem('asli_v5',JSON.stringify({products:S.products,invoices:S.invoices,settlements:S.settlements,masarif:S.masarif,rate:S.rate,bakery:S.bakery,gsheetUrl:S.gsheetUrl,adminPass:S.adminPass,deliveryFee:S.deliveryFee,extras:S.extras,orderNum:S.orderNum}));}catch(e){}
+  S.dataSignature=getDataSignature();
+  try{localStorage.setItem('asli_v5',JSON.stringify({products:S.products,invoices:S.invoices,settlements:S.settlements,masarif:S.masarif,rate:S.rate,bakery:S.bakery,gsheetUrl:S.gsheetUrl,adminPass:S.adminPass,deliveryFee:S.deliveryFee,extras:S.extras,orderNum:S.orderNum,dataSignature:S.dataSignature}));}catch(e){}
 }
 
 // ═══ PAGES ═══
@@ -641,11 +675,10 @@ function openAddModal(idx,variant){
   modalCb=function(){
     var remark=document.getElementById('m-remark').value.trim();
     addToCart(idx,variant,selExtras,remark);
-    _itemSelections[idx]={extras:[]};
-    renderItems();
     closePanel(idx); // close this item's panel
     closeModal();    // close modal — done automatically then user continues picking
   };
+  modalCtx={type:'add',itemIdx:idx};
   document.getElementById('overlay').classList.add('open');
 }
 
@@ -716,6 +749,7 @@ function openPriceModal(cid){
     renderCart();
     closeModal();
   };
+  modalCtx={type:'price',cid:cid};
   document.getElementById('overlay').classList.add('open');
 }
 function selPO(t){
@@ -724,7 +758,15 @@ function selPO(t){
   var inp=document.getElementById('m-price');if(inp)inp.style.display=t==='cust'?'block':'none';
 }
 function confirmModal(){if(modalCb){modalCb();}else{closeModal();}}
-function closeModal(){document.getElementById('overlay').classList.remove('open');modalCb=null;}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  if(modalCtx&&modalCtx.type==='add'){
+    _itemSelections={};
+    renderItems();
+  }
+  modalCb=null;
+  modalCtx=null;
+}
 function closePanel(i){var sp=document.getElementById('sp-'+i);if(sp)sp.classList.remove('open');}
 
 // ═══ PRINT ═══
