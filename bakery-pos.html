@@ -1059,6 +1059,8 @@ function doSettle(date,invs,total){
   var settle={date:date,time:timeStr,count:invs.length,totalLL:total,rate:S.rate,invoices:invs};
   S.settlements.push(settle);
   S.invoices=S.invoices.filter(function(i){return i.date!==date;});
+  // reset daily order counter so next order starts again from #1
+  S.orderNum=0;
   persist();
   if(S.gsheetUrl){
     try{fetch(S.gsheetUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'settlement',settle:settle,bakery:S.bakery})});}catch(e){}
@@ -1169,7 +1171,7 @@ function renderOwner(){
   document.getElementById('owner-date').textContent=new Date().toLocaleDateString('ar-LB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('owner-bname').textContent=S.bakery;
   var today=new Date().toLocaleDateString('en-GB');
-  var td=S.invoices.fSilter(function(i){return i.date===today;});
+  var td=S.invoices.filter(function(i){return i.date===today;});
   var totalLL=td.reduce(function(s,i){return s+i.totalLL;},0);
   var delCount=td.filter(function(i){return i.delivery;}).length;
   document.getElementById('s-ll').textContent=fmt(totalLL);
