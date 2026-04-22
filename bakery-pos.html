@@ -245,24 +245,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* items */
 #kt .kt-item{margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed #999;}
-#kt .kt-item-name{font-size:18px;font-weight:bold;line-height:1.3;}
-#kt .kt-q{font-size:20px;font-weight:bold;}
-#kt .kt-variant{font-size:15px;margin-top:2px;padding-right:8px;}
-#kt .kt-extras{font-size:14px;margin-top:2px;padding-right:8px;font-style:italic;}
-#kt .kt-remark{font-size:15px;font-weight:bold;margin-top:4px;border:2px solid #000;padding:3px 6px;background:#f0f0f0;}
+#kt .kt-item-name{font-size:16px;font-weight:bold;line-height:1.3;}
+#kt .kt-q{font-size:18px;font-weight:bold;}
+#kt .kt-variant{font-size:13px;font-weight:bold;margin-top:2px;padding-right:8px;}
+#kt .kt-extras{font-size:13px;font-weight:bold;margin-top:2px;padding-right:8px;}
+#kt .kt-remark{font-size:14px;font-weight:bold;margin-top:4px;border:2px solid #000;padding:3px 6px;background:#f0f0f0;}
 
 /* price row */
 #kt .kt-price-row{display:flex;justify-content:space-between;align-items:baseline;}
-#kt .kt-line-price{font-size:17px;font-weight:bold;white-space:nowrap;}
+#kt .kt-line-price{font-size:14px;font-weight:bold;white-space:nowrap;}
 
 /* totals */
 #kt .kt-total-section{border-top:2px solid #000;margin-top:10px;padding-top:8px;}
-#kt .kt-total-line{display:flex;justify-content:space-between;font-size:15px;margin-bottom:4px;}
-#kt .kt-grand{display:flex;justify-content:space-between;font-size:22px;font-weight:bold;margin-top:6px;border-top:2px dashed #000;padding-top:6px;}
-#kt .kt-usd{text-align:left;font-size:15px;color:#555;margin-top:2px;}
+#kt .kt-total-line{display:flex;justify-content:space-between;font-size:12px;font-weight:bold;margin-bottom:4px;}
+#kt .kt-grand{display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin-top:6px;border-top:2px dashed #000;padding-top:6px;}
+#kt .kt-usd{text-align:left;font-size:12px;font-weight:bold;color:#333;margin-top:2px;}
 
 /* footer */
-#kt .kt-foot{text-align:center;margin-top:12px;font-size:14px;border-top:2px dashed #000;padding-top:8px;}
+#kt .kt-foot{text-align:center;margin-top:12px;font-size:12px;font-weight:bold;border-top:2px dashed #000;padding-top:8px;}
 
 /* RESTORE SCREEN */
 .restore-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:999;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
@@ -274,7 +274,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .restore-btn-secondary{background:var(--card);color:var(--am);border:2px solid var(--am);border-radius:10px;padding:13px;width:100%;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;}
 .restore-btn-ghost{background:none;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:11px;width:100%;font-family:var(--font);font-size:13px;cursor:pointer;}
 .restore-version{font-size:10px;color:var(--muted);margin-top:16px;opacity:.6;}
-bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.2);}
 .toast.show{opacity:1;}
 </style>
 </head>
@@ -305,7 +305,7 @@ bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:#fff;p
 <div class="nav">
   <div class="nav-tab active" onclick="showPage('cashier',this)">الكاشير</div>
   <div class="nav-tab" onclick="showPage('owner',this)">المدير</div>
-  <div class="nav-tab" onclick="showPage('masarif',this)">المصاريف</div>
+   <!-- <div class="nav-tab" onclick="showPage('masarif',this)">المصاريف</div>-->
   <div class="nav-tab" onclick="showPage('settings',this)">الإعدادات</div>
 </div>
 
@@ -568,20 +568,6 @@ function openDB(cb){
   req.onerror=function(){console.warn('IndexedDB failed, using localStorage');cb(null);};
 }
 
-function persist(){
-  var data={products:S.products,invoices:S.invoices,settlements:S.settlements,masarif:S.masarif,rate:S.rate,bakery:S.bakery,gsheetUrl:S.gsheetUrl,adminPass:S.adminPass,deliveryFee:S.deliveryFee,extras:S.extras,orderNum:S.orderNum};
-  // Always write localStorage as quick fallback
-  try{localStorage.setItem('asli_v5',JSON.stringify(data));}catch(e){}
-  // Write IndexedDB as primary
-  openDB(function(db){
-    if(!db)return;
-    try{
-      var tx=db.transaction(STORE,'readwrite');
-      tx.objectStore(STORE).put(data, DATA_KEY);
-    }catch(e){}
-  });
-}
-
 // ═══ STORAGE — Smart dual mode ═══
 // localhost (server.py)  → saves to data.json + settings.json
 // file://  (double click) → saves to IndexedDB + localStorage fallback
@@ -610,9 +596,13 @@ function persist(){
   };
 
   if(USE_SERVER){
-    // Save to data.json and settings.json via server
-    fetch(SERVER+'/api/data',     {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dataPayload)}).catch(function(){});
-    fetch(SERVER+'/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settingsPayload)}).catch(function(){});
+    var saves = [
+      fetch(SERVER+'/api/data',     {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(dataPayload)}),
+      fetch(SERVER+'/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settingsPayload)})
+    ];
+    Promise.all(saves)
+      .then(function(){ /* saved ok */ })
+      .catch(function(e){ console.warn('Save error:', e); showToast('تحذير: فشل الحفظ على السيرفر'); });
   } else {
     // Save to IndexedDB + localStorage
     var full = Object.assign({}, dataPayload, settingsPayload);
@@ -627,17 +617,26 @@ function persist(){
 // ── load ──
 function load(){
   if(USE_SERVER){
-    // Load from server files
     Promise.all([
       fetch(SERVER+'/api/data').then(function(r){return r.json();}),
       fetch(SERVER+'/api/settings').then(function(r){return r.json();})
     ]).then(function(results){
-      var data = results[0];
-      var settings = results[1];
-      applyState(Object.assign({}, data, settings));
+      var data     = results[0]; // invoices, settlements, masarif, orderNum
+      var settings = results[1]; // products, extras, rate, bakery, etc.
+      // settings wins for config — data wins for transactional records
+      var merged = Object.assign({}, settings, data);
+      // But products/extras/config must ALWAYS come from settings
+      merged.products    = settings.products    || data.products;
+      merged.extras      = settings.extras      || data.extras;
+      merged.extraRules  = settings.extraRules  || data.extraRules;
+      merged.bakery      = settings.bakery      || data.bakery;
+      merged.rate        = settings.rate        || data.rate;
+      merged.adminPass   = settings.adminPass   || data.adminPass;
+      merged.deliveryFee = settings.deliveryFee != null ? settings.deliveryFee : (data.deliveryFee||0);
+      merged.gsheetUrl   = settings.gsheetUrl   || data.gsheetUrl;
+      applyState(merged);
       initUI();
     }).catch(function(){
-      // Server not ready yet — retry once
       setTimeout(load, 800);
     });
   } else {
@@ -849,77 +848,16 @@ function renderCats(){
 }
 function setCat(c){activeCat=c;renderCats();renderItems();}
 
-// ═══ ITEMS ═══
-function renderItems(){
-  var list=activeCat==='الكل'?S.products:S.products.filter(function(p){return p.cat===activeCat;});
-  var extrasHtml=buildExtrasHtml();
-  document.getElementById('items-list').innerHTML=list.map(function(p){
-    var i=S.products.indexOf(p);
-    var ext= extrasHtml ? '<div class="extras-section"><div class="extras-title">إضافات</div><div class="extras-grid" id="ext-'+i+'">'+buildExtrasChips(i)+'</div></div>' : '';
-    if(p.type==='pizza'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceS)+'+</span><div class="item-header-hint">اختر الحجم ▾</div></div><div class="size-panel" id="sp-'+i+'"><div class="size-row"><div class="size-btn" onclick="openAddModal('+i+',\'S\')"><div class="size-lbl">S</div><div class="size-desc">صغير</div><div class="size-price">'+fmt(p.priceS)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'M\')"><div class="size-lbl">M</div><div class="size-desc">وسط</div><div class="size-price">'+fmt(p.priceM)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'L\')"><div class="size-lbl">L</div><div class="size-desc">كبير</div><div class="size-price">'+fmt(p.priceL)+'</div></div></div>'+ext+'</div></div>';
-    }else if(p.type==='manousheh'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceA)+'+</span><div class="item-header-hint">عادي / مشروحة ▾</div></div><div class="type-panel" id="sp-'+i+'"><div class="type-grid"><div class="type-btn" onclick="openAddModal('+i+',\'عادي\')"><div class="type-lbl">عادي</div><div class="type-price">'+fmt(p.priceA)+' ل.ل</div></div><div class="type-btn" onclick="openAddModal('+i+',\'مشروحة\')"><div class="type-lbl">مشروحة</div><div class="type-price">'+fmt(p.priceB)+' ل.ل</div></div></div>'+ext+'</div></div>';
-    }else{
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div>'+(p.desc?'<div class="item-desc-small">'+p.desc+'</div>':'')+'<span class="item-price-simple">'+fmt(p.price)+' ل.ل</span></div><div class="size-panel" id="sp-'+i+'">'+ext+'<div style="margin-top:8px"><button style="background:var(--g);color:#fff;border:none;border-radius:9px;padding:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%" onclick="openAddModal('+i+',null)">+ إضافة</button></div></div></div>';
-    }
-  }).join('');
-}
+var _itemSelections={};// itemIdx -> {extras:[eId, ...]}
 
-function buildExtrasHtml(){return S.extras.length>0;}
-function buildExtrasChips(itemIdx){
-  return S.extras.map(function(e,ei){
-    return'<div class="extra-chip" id="ec-'+itemIdx+'-'+ei+'" onclick="toggleExtra('+itemIdx+','+ei+')"><div class="e-check" id="eck-'+itemIdx+'-'+ei+'"></div><div class="e-lbl">'+e.name+'</div><div class="e-price">+'+fmt(e.price)+'</div></div>';
-  }).join('');
-}
-
-var _itemSelections={};// itemIdx -> {extras:[]}
-function toggleExtra(iIdx,eIdx){
-  if(!_itemSelections[iIdx])_itemSelections[iIdx]={extras:[]};
-  var arr=_itemSelections[iIdx].extras;
-  var pos=arr.indexOf(eIdx);
-  if(pos>=0)arr.splice(pos,1);else arr.push(eIdx);
-  var chip=document.getElementById('ec-'+iIdx+'-'+eIdx);
-  var check=document.getElementById('eck-'+iIdx+'-'+eIdx);
-  if(chip){chip.classList.toggle('selected',pos<0);}
-  if(check){check.textContent=pos<0?'✓':'';}
-}
 function togglePanel(i){
   var sp=document.getElementById('sp-'+i);
-  var isOpen=sp&&sp.classList.contains('open');
-  document.querySelectorAll('.size-panel,.type-panel').forEach(function(x){x.classList.remove('open');});
-  if(!isOpen&&sp)sp.classList.add('open');
+  if(!sp)return;
+  // Only toggle THIS panel — don't close others (user may want to compare items)
+  sp.classList.toggle('open');
 }
 
-// ═══ ADD MODAL (with extras preview) ═══
-function openAddModal(idx,variant){
-  var p=S.products[idx];
-  var sel=_itemSelections[idx]||{extras:[]};
-  var selExtras=sel.extras.map(function(ei){return S.extras[ei];}).filter(Boolean);
-  var basePrice=0;
-  var varLabel='';
-  if(p.type==='pizza'){if(variant==='S'){basePrice=p.priceS;varLabel='S - صغير';}else if(variant==='M'){basePrice=p.priceM;varLabel='M - وسط';}else{basePrice=p.priceL;varLabel='L - كبير';}}
-  else if(p.type==='manousheh'){if(variant==='عادي'){basePrice=p.priceA;varLabel='عادي';}else{basePrice=p.priceB;varLabel='مشروحة';}}
-  else{basePrice=p.price;}
-  var extrasTotal=selExtras.reduce(function(s,e){return s+e.price;},0);
-  var total=basePrice+extrasTotal;
-
-  document.getElementById('modal-title').textContent='إضافة — '+p.name+(varLabel?' ('+varLabel+')':'');
-  var extrasPreview=selExtras.length?'<div style="background:var(--al);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:var(--am)"><strong>الإضافات المختارة:</strong><br>'+selExtras.map(function(e){return'• '+e.name+' (+'+fmt(e.price)+')'}).join('<br>')+'</div>':'';
-  document.getElementById('modal-body').innerHTML=
-    extrasPreview+
-    '<div style="background:var(--bg);border-radius:8px;padding:10px;margin-bottom:12px;display:flex;justify-content:space-between;font-weight:700;font-size:15px"><span>المجموع</span><span style="font-family:var(--mono);color:var(--g)">'+fmt(total)+' ل.ل</span></div>'+
-    '<textarea class="modal-input" id="m-remark" rows="2" placeholder="ملاحظة للمطبخ (اختياري)..."></textarea>';
-  modalCb=function(){
-    var remark=document.getElementById('m-remark').value.trim();
-    addToCart(idx,variant,selExtras,remark);
-    _itemSelections[idx]={extras:[]};
-    renderItems();
-    closePanel(idx); // close this item's panel
-    closeModal();    // close modal — done automatically then user continues picking
-  };
-  document.getElementById('overlay').classList.add('open');
-}
+// ═══ ADD MODAL ═══
 
 // ═══ CART ═══
 function addToCart(idx,variant,extras,remark){
@@ -1250,19 +1188,16 @@ function updateProfit(){
 
 // ═══ SETTINGS ═══
 function renderSettingsPage(){
-  document.getElementById('s-bname').value=S.bakery;
-  document.getElementById('s-whatsapp-owner').value=S.whatsapp_owner;
-  document.getElementById('s-rate').value=S.rate;
-  document.getElementById('s-gsheet').value=S.gsheetUrl||'';
-  document.getElementById('s-delivery-fee').value=S.deliveryFee||0;
-  document.getElementById('rate-disp').textContent=fmt(S.rate);
-  renderProdRows();renderExtrasSettings();
+  var el=function(id){return document.getElementById(id);};
+  if(el('s-bname'))          el('s-bname').value          = S.bakery||'';
+  if(el('s-whatsapp-owner')) el('s-whatsapp-owner').value = S.whatsapp_owner||'';
+  if(el('s-rate'))           el('s-rate').value           = S.rate||90000;
+  if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
+  if(el('s-delivery-fee'))   el('s-delivery-fee').value   = S.deliveryFee||0;
+  if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
+  renderProdRows();
+  renderExtrasSettings();
 }
-function renderExtrasSettings(){
-  var list=document.getElementById('extras-settings-list');
-  list.innerHTML=(S.extras||[]).map(function(e,i){return'<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px"><input class="finput" value="'+e.name+'" onchange="S.extras['+i+'].name=this.value" placeholder="اسم الإضافة"><input class="finput" type="number" value="'+e.price+'" onchange="S.extras['+i+'].price=parseInt(this.value)||0" placeholder="السعر" style="width:110px"><button onclick="S.extras.splice('+i+',1);renderExtrasSettings();" style="background:var(--rl);border:1px solid #fca5a5;color:var(--r);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">✕</button></div>';}).join('');
-}
-function addExtraRow(){S.extras.push({id:'x'+Date.now(),name:'',price:0});renderExtrasSettings();}
 function renderProdRows(){
   document.getElementById('prod-count').textContent=S.products.length;
   document.getElementById('prods-list').innerHTML=S.products.map(function(p,i){
@@ -1274,16 +1209,6 @@ function renderProdRows(){
   }).join('');
 }
 function addProdRow(){S.products.push({cat:'',name:'',desc:'',type:'simple',price:0});renderProdRows();}
-function saveSettings(){
-  S.bakery=document.getElementById('s-bname').value||'فرن الأصلي';
-  S.whatsapp_owner=document.getElementById('s-whatsapp-owner').value.trim();
-  S.rate=parseInt(document.getElementById('s-rate').value)||90000;
-  S.gsheetUrl=document.getElementById('s-gsheet').value.trim();
-  S.deliveryFee=parseInt(document.getElementById('s-delivery-fee').value)||0;
-  document.getElementById('rate-disp').textContent=fmt(S.rate);
-  persist();renderItems();renderCats();alert('تم الحفظ ✓');
-}
-
 // ═══ IMPORT ═══
 function renderItems(){
   var list=activeCat==='الكل'?S.products:S.products.filter(function(p){return p.cat===activeCat;});
@@ -1292,11 +1217,11 @@ function renderItems(){
     var availableExtras=getAvailableExtras(p);
     var ext=availableExtras.length?'<div class="extras-section"><div class="extras-title">إضافات</div><div class="extras-grid" id="ext-'+i+'">'+buildExtrasChips(i,availableExtras)+'</div></div>':'';
     if(p.type==='pizza'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceS)+'+</span><div class="item-header-hint">اختر الحجم ▾</div></div><div class="size-panel" id="sp-'+i+'"><div class="size-row"><div class="size-btn" onclick="openAddModal('+i+',\'S\')"><div class="size-lbl">S</div><div class="size-desc">صغير</div><div class="size-price">'+fmt(p.priceS)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'M\')"><div class="size-lbl">M</div><div class="size-desc">وسط</div><div class="size-price">'+fmt(p.priceM)+'</div></div><div class="size-btn" onclick="openAddModal('+i+',\'L\')"><div class="size-lbl">L</div><div class="size-desc">كبير</div><div class="size-price">'+fmt(p.priceL)+'</div></div></div>'+ext+'</div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceS)+'+</span><div class="item-header-hint">اختر الحجم ▾</div></div><div class="size-panel" id="sp-'+i+'"><div class="size-row"><div class="size-btn" onclick="event.stopPropagation();openAddModal('+i+',\'S\')"><div class="size-lbl">S</div><div class="size-desc">صغير</div><div class="size-price">'+fmt(p.priceS)+'</div></div><div class="size-btn" onclick="event.stopPropagation();openAddModal('+i+',\'M\')"><div class="size-lbl">M</div><div class="size-desc">وسط</div><div class="size-price">'+fmt(p.priceM)+'</div></div><div class="size-btn" onclick="event.stopPropagation();openAddModal('+i+',\'L\')"><div class="size-lbl">L</div><div class="size-desc">كبير</div><div class="size-price">'+fmt(p.priceL)+'</div></div></div>'+ext+'</div></div>';
     }else if(p.type==='manousheh'){
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceA)+'+</span><div class="item-header-hint">عادي / مشروحة ▾</div></div><div class="type-panel" id="sp-'+i+'"><div class="type-grid"><div class="type-btn" onclick="openAddModal('+i+',\'عادي\')"><div class="type-lbl">عادي</div><div class="type-price">'+fmt(p.priceA)+' ل.ل</div></div><div class="type-btn" onclick="openAddModal('+i+',\'مشروحة\')"><div class="type-lbl">مشروحة</div><div class="type-price">'+fmt(p.priceB)+' ل.ل</div></div></div>'+ext+'</div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div><span style="font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--gl);padding:2px 7px;border-radius:6px">'+fmt(p.priceA)+'+</span><div class="item-header-hint">عادي / مشروحة ▾</div></div><div class="type-panel" id="sp-'+i+'"><div class="type-grid"><div class="type-btn" onclick="event.stopPropagation();openAddModal('+i+',\'عادي\')"><div class="type-lbl">عادي</div><div class="type-price">'+fmt(p.priceA)+' ل.ل</div></div><div class="type-btn" onclick="event.stopPropagation();openAddModal('+i+',\'مشروحة\')"><div class="type-lbl">مشروحة</div><div class="type-price">'+fmt(p.priceB)+' ل.ل</div></div></div>'+ext+'</div></div>';
     }else{
-      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div>'+(p.desc?'<div class="item-desc-small">'+p.desc+'</div>':'')+'<span class="item-price-simple">'+fmt(p.price)+' ل.ل</span></div><div class="size-panel" id="sp-'+i+'">'+ext+'<div style="margin-top:8px"><button style="background:var(--g);color:#fff;border:none;border-radius:9px;padding:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%" onclick="openAddModal('+i+',null)">+ إضافة</button></div></div></div>';
+      return'<div class="item-card" id="ic-'+i+'"><div class="item-header" onclick="togglePanel('+i+')"><div class="item-name">'+p.name+'</div>'+(p.desc?'<div class="item-desc-small">'+p.desc+'</div>':'')+'<span class="item-price-simple">'+fmt(p.price)+' ل.ل</span></div><div class="size-panel" id="sp-'+i+'">'+ext+'<div style="margin-top:8px"><button style="background:var(--g);color:#fff;border:none;border-radius:9px;padding:9px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%" onclick="event.stopPropagation();openAddModal('+i+',null)">+ إضافة</button></div></div></div>';
     }
   }).join('');
 }
@@ -1305,7 +1230,7 @@ function buildExtrasChips(itemIdx,extras){
   return extras.map(function(e){
     var safeId=(e.id||'').replace(/'/g,'\\\'');
     var selected=_itemSelections[itemIdx]&&_itemSelections[itemIdx].extras&&_itemSelections[itemIdx].extras.indexOf(e.id)>=0;
-    return'<div class="extra-chip'+(selected?' selected':'')+'" id="ec-'+itemIdx+'-'+e.id+'" onclick="toggleExtra('+itemIdx+',\''+safeId+'\')"><div class="e-check" id="eck-'+itemIdx+'-'+e.id+'">'+(selected?'✓':'')+'</div><div class="e-lbl">'+e.name+'</div><div class="e-price">+'+fmt(e.price)+'</div></div>';
+    return'<div class="extra-chip'+(selected?' selected':'')+'" id="ec-'+itemIdx+'-'+e.id+'" onclick="event.stopPropagation();toggleExtra('+itemIdx+',\''+safeId+'\')"><div class="e-check" id="eck-'+itemIdx+'-'+e.id+'">'+(selected?'✓':'')+'</div><div class="e-lbl">'+e.name+'</div><div class="e-price">+'+fmt(e.price)+'</div></div>';
   }).join('');
 }
 
@@ -1424,14 +1349,21 @@ function toggleCategoryExtra(category,extraId){
 }
 
 function saveSettings(){
-  S.bakery=document.getElementById('s-bname').value||'فرن الأصلي';
-  S.whatsapp_owner=document.getElementById('s-whatsapp-owner').value.trim();
-  S.rate=parseInt(document.getElementById('s-rate').value)||90000;
-  S.gsheetUrl=document.getElementById('s-gsheet').value.trim();
-  S.deliveryFee=parseInt(document.getElementById('s-delivery-fee').value)||0;
-  S.extraRules=normalizeExtraRules(S.extraRules);
-  document.getElementById('rate-disp').textContent=fmt(S.rate);
-  persist();renderItems();renderCats();alert('تم الحفظ ✓');
+  var g=function(id){var e=document.getElementById(id);return e?e.value:'';};
+  S.bakery       = g('s-bname').trim() || 'فرن الأصلي';
+  S.whatsapp_owner = g('s-whatsapp-owner').trim();
+  S.rate         = parseInt(g('s-rate'))         || 90000;
+  S.gsheetUrl    = g('s-gsheet').trim();
+  S.deliveryFee  = parseInt(g('s-delivery-fee')) || 0;
+  var newPass    = g('s-admin-pass').trim();
+  if(newPass)      S.adminPass = newPass;
+  S.extraRules   = normalizeExtraRules(S.extraRules);
+  var rd = document.getElementById('rate-disp');
+  if(rd) rd.textContent = fmt(S.rate);
+  persist();
+  renderItems();
+  renderCats();
+  showToast('تم الحفظ ✓');
 }
 
 function importFile(inp){var f=inp.files[0];if(!f)return;var ext=f.name.split('.').pop().toLowerCase();if(ext==='csv'){var r=new FileReader();r.onload=function(e){parseCSV(e.target.result);};r.readAsText(f,'UTF-8');}else{importXLSX(f);}inp.value='';}

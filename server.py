@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-فرن الأصلي — Local Server
-شغّل هذا الملف عبر start.bat
-"""
-
 import http.server
 import json
 import os
@@ -12,6 +5,7 @@ import sys
 import webbrowser
 import threading
 import time
+import socket
 from urllib.parse import urlparse
 
 PORT = 5050
@@ -19,7 +13,6 @@ DATA_FILE = 'data.json'
 SETTINGS_FILE = 'settings.json'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ── Default data if files don't exist ──
 DEFAULT_DATA = {
     "invoices": [],
     "settlements": [],
@@ -28,45 +21,44 @@ DEFAULT_DATA = {
 }
 
 DEFAULT_SETTINGS = {
-    "bakery": "فرن الأصلي",
+    "bakery": "Forn Al Asli",
     "whatsapp_owner": "",
     "rate": 90000,
     "adminPass": "1234",
     "deliveryFee": 0,
     "gsheetUrl": "",
-    "extras": [
-        {"id": "x1", "name": "خضرة", "price": 30000},
-        {"id": "x2", "name": "7 حبوب", "price": 30000},
-        {"id": "x3", "name": "جريش", "price": 30000},
-        {"id": "x4", "name": "أسمر", "price": 30000},
-        {"id": "x5", "name": "عسكر", "price": -20000},
-        {"id": "x6", "name": "محمصة", "price": 0},
-        {"id": "x7", "name": "لفى", "price": 0},
-        {"id": "x8", "name": "مقطة", "price": 0}
-    ],
-    "extraRules": {
-        "categories": {},
-        "types": {}
-    }
+    "extras": [],
+    "extraRules": {"categories": {}, "types": {}},
+    "products": []
 }
 
 
 def read_json(filename, default):
     path = os.path.join(BASE_DIR, filename)
     if not os.path.exists(path):
-        write_json(filename, default)
-        return default
+        write_json(filename, dict(default))
+        return dict(default)
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return default
+        with open(path, 'r', encoding='utf-8-sig') as f:
+            result = json.load(f)
+            return result
+    except Exception as e:
+        print('  WARNING: could not read ' + filename + ': ' + str(e))
+        return dict(default)
 
 
 def write_json(filename, data):
     path = os.path.join(BASE_DIR, filename)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    tmp = path + '.tmp'
+    try:
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        if os.path.exists(path):
+            os.replace(tmp, path)
+        else:
+            os.rename(tmp, path)
+    except Exception as e:
+        print('  ERROR writing ' + filename + ': ' + str(e))
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -75,24 +67,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
     def log_message(self, format, *args):
-        pass  # silent
+        if len(args) > 0 and '/api/' in str(args[0]):
+            status = args[1] if len(args) > 1 else '?'
+            print('  [' + str(status) + '] ' + str(args[0]))
 
     def do_GET(self):
         parsed = urlparse(self.path)
 
-        # API: get data
         if parsed.path == '/api/data':
-            data = read_json(DATA_FILE, DEFAULT_DATA)
-            self._json(data)
+            self._json(read_json(DATA_FILE, DEFAULT_DATA))
             return
 
-        # API: get settings
         if parsed.path == '/api/settings':
-            settings = read_json(SETTINGS_FILE, DEFAULT_SETTINGS)
-            self._json(settings)
+            self._json(read_json(SETTINGS_FILE, DEFAULT_SETTINGS))
             return
 
-        # Serve files normally
         super().do_GET()
 
     def do_POST(self):
@@ -106,15 +95,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._error('Invalid JSON')
             return
 
-        # API: save data (invoices, settlements, masarif, orderNum)
         if parsed.path == '/api/data':
-            write_json(DATA_FILE, payload)
+            # Save only transactional data
+            data_to_save = {
+                'invoices':    payload.get('invoices', []),
+                'settlements': payload.get('settlements', []),
+                'masarif':     payload.get('masarif', []),
+                'orderNum':    payload.get('orderNum', 0)
+            }
+            write_json(DATA_FILE, data_to_save)
             self._json({'ok': True})
             return
 
-        # API: save settings (bakery name, rate, extras, etc.)
         if parsed.path == '/api/settings':
-            write_json(SETTINGS_FILE, payload)
+            # Save only settings/config data
+            settings_to_save = {
+                'bakery':        payload.get('bakery', ''),
+                'whatsapp_owner':payload.get('whatsapp_owner', ''),
+                'rate':          payload.get('rate', 90000),
+                'adminPass':     payload.get('adminPass', '1234'),
+                'deliveryFee':   payload.get('deliveryFee', 0),
+                'gsheetUrl':     payload.get('gsheetUrl', ''),
+                'extras':        payload.get('extras', []),
+                'extraRules':    payload.get('extraRules', {'categories': {}, 'types': {}}),
+                'products':      payload.get('products', [])
+            }
+            write_json(SETTINGS_FILE, settings_to_save)
             self._json({'ok': True})
             return
 
@@ -150,25 +156,55 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def open_browser():
-    time.sleep(1)
-    webbrowser.open(f'http://localhost:{PORT}/bakery-pos.html')
+    time.sleep(1.2)
+    webbrowser.open('http://localhost:' + str(PORT) + '/bakery-pos.html')
 
 
 if __name__ == '__main__':
     os.chdir(BASE_DIR)
 
-    # Start browser in background
+    # Check if port already in use
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    in_use = sock.connect_ex(('localhost', PORT)) == 0
+    sock.close()
+
+    if in_use:
+        print('')
+        print('  Server already running on port ' + str(PORT))
+        print('  Opening browser...')
+        webbrowser.open('http://localhost:' + str(PORT) + '/bakery-pos.html')
+        input('  Press Enter to exit...')
+        sys.exit(0)
+
+    # Verify required files exist
+    html_path = os.path.join(BASE_DIR, 'bakery-pos.html')
+    if not os.path.exists(html_path):
+        print('')
+        print('  ERROR: bakery-pos.html not found in:')
+        print('  ' + BASE_DIR)
+        print('  Make sure all files are in the same folder.')
+        input('  Press Enter to exit...')
+        sys.exit(1)
+
+    # Start browser in background thread
     threading.Thread(target=open_browser, daemon=True).start()
 
     print('')
     print('  POS Server - Forn Al Asli')
-    print('  http://localhost:5050')
-    print('  Press Ctrl+C to stop')
+    print('  http://localhost:' + str(PORT))
+    print('  Keep this window open while using POS.')
+    print('  Press Ctrl+C to stop.')
     print('')
 
-    server = http.server.HTTPServer(('localhost', PORT), Handler)
     try:
+        server = http.server.HTTPServer(('localhost', PORT), Handler)
         server.serve_forever()
     except KeyboardInterrupt:
-        print('\n  Server stopped.')
+        print('')
+        print('  Server stopped.')
         sys.exit(0)
+    except Exception as e:
+        print('')
+        print('  ERROR: ' + str(e))
+        input('  Press Enter to exit...')
+        sys.exit(1)
