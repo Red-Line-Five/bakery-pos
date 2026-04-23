@@ -1185,11 +1185,6 @@ function sendSettleCSVtoWhatsApp(settle){
 
   // Send only item quantities (name + qty), without LL/$ sales columns.
   var rows=[];
-  rows.push([S.bakery+' — تقرير إغلاق الحساب']);
-  rows.push(['التاريخ',settle.date]);
-  rows.push(['وقت الإغلاق',settle.time]);
-  rows.push(['عدد الطلبيات',settle.count]);
-  rows.push([]);
   rows.push(['── مبيعات الأصناف ──']);
   rows.push(['الصنف','الكمية المباعة']);
   itemRows.forEach(function(r){rows.push([r[0],r[1]]);});
@@ -1207,6 +1202,8 @@ function sendSettleCSVtoWhatsApp(settle){
     '🏪 '+S.bakery+'\n'+
     '📅 التاريخ: '+settle.date+'\n'+
     '🕒 وقت الإغلاق: '+settle.time+'\n'+
+    'إجمالي المبيعات (ل.ل): '+settle.totalLL+'\n'+
+    'إجمالي المبيعات ($): '+(settle.totalLL/settle.rate).toFixed(2)+'\n'+
     '🧾 عدد الطلبيات: '+settle.count+'\n'+
     '🍞 عدد الأصناف المباعة: '+itemRows.length+'\n\n'+
     'CSV:\n'+csv;
