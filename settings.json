@@ -1,5 +1,5 @@
 {
-  "bakery": "Forn Al Asli",
+  "bakery": "Forn",
   "whatsapp_owner": "",
   "rate": 90000,
   "adminPass": "1234",
@@ -11,12 +11,6 @@
     "types": {}
   },
   "products": [
-    {
-      "cat": "",
-      "name": "",
-      "desc": "",
-      "type": "simple",
-      "price": 0
-    }
+
   ]
 }
