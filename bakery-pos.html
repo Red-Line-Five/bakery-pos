@@ -856,6 +856,13 @@ function setCat(c){activeCat=c;renderCats();renderItems();}
 var _itemSelections={};// itemIdx -> {extras:[eId, ...]}
 var _itemQty={};// itemIdx -> qty before add to invoice
 
+function resetPendingQtyState(){
+  _itemQty={};
+  document.querySelectorAll('[id^="pending-qty-"]').forEach(function(el){
+    el.textContent='1';
+  });
+}
+
 function togglePanel(i){
   var sp=document.getElementById('sp-'+i);
   if(!sp)return;
@@ -916,6 +923,7 @@ function renderCart(){
     closeModal();
     unselectAllExtras();
     _itemSelections={};
+    resetPendingQtyState();
     updatePill(0,0);
     return;
   }
@@ -934,6 +942,7 @@ function renderCart(){
   closeModal();
   unselectAllExtras();
   _itemSelections={};
+  resetPendingQtyState();
   var total=calcTotal();
   var deliveryFee=getDeliveryFee();
   var grand=total+deliveryFee;
