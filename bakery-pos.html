@@ -1182,17 +1182,17 @@ function sendSettleCSVtoWhatsApp(settle){
   }
 
   var itemRows=buildItemSalesRows(settle);
+
+  // Send only item quantities (name + qty), without LL/$ sales columns.
   var rows=[];
   rows.push([S.bakery+' — تقرير إغلاق الحساب']);
   rows.push(['التاريخ',settle.date]);
   rows.push(['وقت الإغلاق',settle.time]);
   rows.push(['عدد الطلبيات',settle.count]);
-  rows.push(['إجمالي المبيعات (ل.ل)',settle.totalLL]);
-  rows.push(['إجمالي المبيعات ($)',(settle.totalLL/settle.rate).toFixed(2)]);
   rows.push([]);
   rows.push(['── مبيعات الأصناف ──']);
-  rows.push(['الصنف','الكمية المباعة','المبيعات (ل.ل)','المبيعات ($)']);
-  itemRows.forEach(function(r){rows.push(r);});
+  rows.push(['الصنف','الكمية المباعة']);
+  itemRows.forEach(function(r){rows.push([r[0],r[1]]);});
 
   var csv=rows.map(function(r){
     return r.map(function(cell){
@@ -1204,25 +1204,15 @@ function sendSettleCSVtoWhatsApp(settle){
 
   var summary=
     '📊 تقرير الإغلاق\n'+
+    '🏪 '+S.bakery+'\n'+
     '📅 التاريخ: '+settle.date+'\n'+
+    '🕒 وقت الإغلاق: '+settle.time+'\n'+
     '🧾 عدد الطلبيات: '+settle.count+'\n'+
-    '💰 المجموع: '+settle.totalLL+' ل.ل\n'+
-    '🍞 عدد الأصناف المباعة: '+itemRows.length+'\n\n';
+    '🍞 عدد الأصناف المباعة: '+itemRows.length+'\n\n'+
+    'CSV:\n'+csv;
 
-  var maxWaChars=3500;
-  var msg=summary+'CSV:\n'+csv;
-  if(msg.length>maxWaChars){
-    var fallbackMsg=summary+'⚠️ CSV كبير. تم نسخه إلى الحافظة. الصقه هنا.';
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(csv).then(function(){
-        showToast('تم نسخ CSV للحافظة ✓');
-      }).catch(function(){});
-    }
-    msg=fallbackMsg;
-  }
-
-  var phone=S.whatsapp_owner;
-  var waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
+  var phone=String(S.whatsapp_owner||'').replace(/[^\d]/g,'');
+  var waUrl='https://wa.me/'+phone+'?text='+encodeURIComponent(summary);
   window.open(waUrl,'_blank');
 }
 
