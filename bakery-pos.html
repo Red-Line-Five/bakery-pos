@@ -910,7 +910,15 @@ function unselectAllExtras() {
 function renderCart(){
   var body=document.getElementById('cart-body');
   var ta=document.getElementById('totals-area');
-  if(!S.cart.length){body.innerHTML='<div class="cart-empty">اختر صنف من القائمة</div>';ta.style.display='none';updatePill(0,0);return;}
+  if(!S.cart.length){
+    body.innerHTML='<div class="cart-empty">اختر صنف من القائمة</div>';
+    ta.style.display='none';
+    closeModal();
+    unselectAllExtras();
+    _itemSelections={};
+    updatePill(0,0);
+    return;
+  }
   ta.style.display='block';
   body.innerHTML=S.cart.map(function(c){
     var p=S.products[c.idx];
@@ -922,7 +930,10 @@ function renderCart(){
     if(c.remark)tags+='<span class="ci-tag ci-tag-remark">📝 '+c.remark+'</span>';
     if(c.customPrice!==null)tags+='<span class="ci-tag ci-tag-price">سعر خاص: '+fmt(c.customPrice)+'</span>';
     return'<div class="cart-item"><div class="ci-top"><div class="ci-info"><div class="ci-name">'+p.name+'</div>'+(c.variant||p.desc?'<div class="ci-sub">'+(c.variant||p.desc||'')+'</div>':'')+'<div class="ci-tags">'+tags+'</div></div><div class="ci-right"><div class="ci-price">'+fmt(lineP)+' ل.ل<br><span style="font-size:10px;color:var(--muted)">$'+(lineP/S.rate).toFixed(2)+'</span></div><div class="qty-row"><button class="qty-btn" onclick="changeQty('+c.cid+',-1)">−</button><span class="qty-num">'+c.qty+'</span><button class="qty-btn" onclick="changeQty('+c.cid+',1)">+</button></div></div></div><div class="ci-actions"><button class="ca-btn" onclick="openPriceModal('+c.cid+')">💰 تعديل السعر</button><button class="ca-btn red" onclick="removeCI('+c.cid+')">حذف</button></div></div>';
-  }).join('');closeModal();unselectAllExtras();
+  }).join('');
+  closeModal();
+  unselectAllExtras();
+  _itemSelections={};
   var total=calcTotal();
   var deliveryFee=getDeliveryFee();
   var grand=total+deliveryFee;
