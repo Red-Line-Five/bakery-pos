@@ -955,8 +955,11 @@ function calcTotal(){return S.cart.reduce(function(s,c){return s+(c.customPrice!
 function clearCart(){S.cart=[];renderCart();}
 function scrollToCart(){document.getElementById('cart-section').scrollIntoView({behavior:'smooth'});}
 function updatePill(count,total){
-  document.getElementById('pill-count').textContent=count+' صنف';
-  document.getElementById('pill-total').textContent=fmt(total)+' ل.ل';
+  var pillCountEl=document.getElementById('pill-count');
+  var pillTotalEl=document.getElementById('pill-total');
+  if(!pillCountEl||!pillTotalEl)return;
+  pillCountEl.textContent=count+' صنف';
+  pillTotalEl.textContent=fmt(total)+' ل.ل';
 }
 
 // ═══ PRICE MODAL ═══
