@@ -486,7 +486,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div style="font-size:10px;color:var(--g);margin-top:8px;opacity:.7">الملف بيتحفظ باسم: اسم_المحل_backup_YYYY-MM-DD.json</div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:left" id="app-version-lbl"></div>
   </div>
-
+ <div class="s-box">
+    <div class="s-title">📱 Telegram — المدير يستلم report تلقائي</div>
+    <div style="background:var(--bluel);border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:12px;line-height:1.8">
+      ١. افتح Telegram وابحث عن <strong>@BotFather</strong><br>
+      ٢. ابعثله <code style="background:#fff;padding:1px 5px;border-radius:3px">/newbot</code> واختارله اسم<br>
+      ٣. انسخ الـ <strong>Token</strong> اللي بيعطيك<br>
+      ٤. افتح البوت وابعثله أي رسالة<br>
+      ٥. افتح: <code style="background:#fff;padding:1px 5px;border-radius:3px;direction:ltr;display:inline-block">api.telegram.org/botTOKEN/getUpdates</code><br>
+      ٦. انسخ رقم <strong>"id"</strong> من النتيجة
+    </div>
+    <div class="frow">
+      <div class="flbl">Bot Token</div>
+      <input class="finput" id="s-telegram-token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" style="direction:ltr;font-size:11px;">
+    </div>
+    <div class="frow">
+      <div class="flbl">Chat ID (رقم المدير)</div>
+      <input class="finput" id="s-telegram-chatid" placeholder="123456789" style="direction:ltr;">
+    </div>
+  </div>
   <div class="s-box">
     <div class="s-title">معلومات المحل</div>
     <div class="frow"><div class="flbl">اسم المحل</div><input class="finput" id="s-bname" value="baker name"></div>
@@ -501,19 +519,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
     <div id="extra-rules-settings" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
   </div>
-  <div class="s-box">
-    <div class="s-title">Google Sheets</div>
-    <div class="sheets-info">
-      ١. افتح <code>sheets.google.com</code> — Sheet جديد<br>
-      ٢. <code>Extensions → Apps Script</code><br>
-      ٣. انسخ الكود، الصقه، احفظ<br>
-      ٤. <code>Deploy → New deployment → Web app</code><br>
-      ٥. Who has access: <code>Anyone</code><br>
-      ٦. انسخ الـ URL هون
-    </div>
-    <div class="frow"><div class="flbl">رابط Apps Script</div><input class="finput" id="s-gsheet" placeholder="https://script.google.com/..." style="direction:ltr;font-size:11px;"></div>
-    <button class="btn-add" onclick="copyAppsScript()">نسخ كود Apps Script</button>
-  </div>
+
   <div class="s-box">
     <div class="s-title">استيراد قائمة الأسعار</div>
     <div class="csv-hint">أعمدة: <code>قسم</code>,<code>اسم</code>,<code>وصف</code>,<code>سعر</code><br>
@@ -1122,7 +1128,7 @@ function doSettle(date,invs,total){
   // ── Download CSV ──
   downloadSettleCSV(settle);
   // sendSettleCSVtoWhatsApp(settle);
-
+  testTelegram(settle);
   showToast('تم الإغلاق — تم تحميل الملف ✓');
   renderOwner();
 }
