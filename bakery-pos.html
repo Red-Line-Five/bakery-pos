@@ -1029,8 +1029,8 @@ function printKitchen(){
         unitPrice:c.customPrice!==null?c.customPrice:(c.unitPrice+c.extrasTotal)
       };
     }),
-    totalLL:grand,rate:S.rate,delivery:delivery.on,deliveryFee:deliveryFee,
-    deliveryName:dName,deliveryPhone:dPhone,deliveryAddress:dAddress
+    totalLL:grand,rate:S.rate,delivery:delivery.on,deliveryFee:deliveryFee
+   
   };
 
   // Non-delivery: kitchen print only. Delivery: kitchen + client.
@@ -1045,9 +1045,7 @@ function printKitchen(){
 
 function buildInvoicePrintMarkup(inv,mode){
   var deliverySection=inv.delivery?('<div class="kt-delivery">🛵 توصيل'
-    +(inv.deliveryName?'<br>'+inv.deliveryName:'')
-    +(inv.deliveryPhone?'<br>'+inv.deliveryPhone:'')
-    +(inv.deliveryAddress?'<br>'+inv.deliveryAddress:'')
+
     +(inv.deliveryFee?'<br>رسوم: '+fmt(inv.deliveryFee)+' ل.ل':'')
   +'</div>'):'';
   var kitchenItems=(inv.items||[]).map(function(item){
@@ -1198,7 +1196,7 @@ function downloadSettleCSV(settle){
   rows.push(['سعر الصرف', settle.rate]);
   rows.push([]); // blank line
   rows.push(['── تفاصيل الطلبيات ──']);
-  rows.push(['الوقت','الأصناف','توصيل','اسم الزبون','العنوان','المجموع (ل.ل)','المجموع ($)']);
+  rows.push(['الوقت','الأصناف','توصيل','المجموع (ل.ل)','المجموع ($)']);
 
   settle.invoices.forEach(function(inv){
     var itemsStr=inv.items.map(function(it){
@@ -1208,8 +1206,7 @@ function downloadSettleCSV(settle){
       inv.time,
       itemsStr,
       inv.delivery?'نعم':'لا',
-      inv.deliveryName||'',
-      inv.deliveryAddress||'',
+
       inv.totalLL,
       (inv.totalLL/inv.rate).toFixed(2)
     ]);
@@ -1348,7 +1345,7 @@ function renderOwner(){
   if(!td.length){list.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">لا يوجد طلبيات</div>';}
   else{list.innerHTML=td.slice().reverse().map(function(inv){
     var invIdx=S.invoices.indexOf(inv);
-    return'<div class="inv-row clickable" onclick="openInvoicePrintModal('+invIdx+')"><div class="inv-row-top"><div>'+(inv.orderNum?'<div class="inv-order">#'+inv.orderNum+'</div>':'')+'<div class="inv-time">'+inv.time+(inv.delivery?'<span class="inv-delivery-badge" style="margin-right:6px">🛵 توصيل</span>':'')+'</div><div class="inv-items">'+inv.items.map(function(i){return i.qty+'x '+i.name+(i.variant?' ('+i.variant+')':'');}).join(' ، ')+'</div>'+(inv.delivery?'<div style="font-size:11px;color:var(--blue);margin-top:2px;font-weight:700">📍 '+(inv.deliveryName||'')+' — '+(inv.deliveryAddress||'')+(inv.deliveryFee?(' | رسوم '+fmt(inv.deliveryFee)+' ل.ل'):'')+'</div>':'')+'</div><div style="text-align:left"><div class="inv-total">'+fmt(inv.totalLL)+' ل.ل</div><div class="inv-usd">$'+(inv.totalLL/inv.rate).toFixed(2)+'</div></div></div></div>';
+    return'<div class="inv-row clickable" onclick="openInvoicePrintModal('+invIdx+')"><div class="inv-row-top"><div>'+(inv.orderNum?'<div class="inv-order">#'+inv.orderNum+'</div>':'')+'<div class="inv-time">'+inv.time+(inv.delivery?'<span class="inv-delivery-badge" style="margin-right:6px">🛵 توصيل</span>':'')+'</div><div class="inv-items">'+inv.items.map(function(i){return i.qty+'x '+i.name+(i.variant?' ('+i.variant+')':'');}).join(' ، ')+'</div>'+(inv.delivery?'<div style="font-size:11px;color:var(--blue);margin-top:2px;font-weight:700">📍 '+(inv.deliveryFee?(' | رسوم '+fmt(inv.deliveryFee)+' ل.ل'):'')+'</div>':'')+'</div><div style="text-align:left"><div class="inv-total">'+fmt(inv.totalLL)+' ل.ل</div><div class="inv-usd">$'+(inv.totalLL/inv.rate).toFixed(2)+'</div></div></div></div>';
   }).join('');}
   var sh=document.getElementById('settle-history');
   if(!S.settlements.length){sh.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px 0">لا يوجد إغلاقات</div>';}
