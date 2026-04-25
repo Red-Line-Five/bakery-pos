@@ -1033,8 +1033,8 @@ function printKitchen(){
    
   };
 
-  // Non-delivery: kitchen print only. Delivery: kitchen + client.
-  document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'kitchen');
+  // Non-delivery: client print only. Delivery: client + kitchen.
+  document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'client');
 
   S.invoices.push(inv);persist();
   window.print();
@@ -1070,7 +1070,7 @@ function buildInvoicePrintMarkup(inv,mode){
     '</div>';
   }).join('');
   var kitchenPage=
-    '<div'+(mode==='both'?' class="kt-page-break"':'')+'>'+
+    '<div>'+
       '<div class="kt-bakery">'+S.bakery+'</div>'+
       '<div class="kt-type">المطبخ</div>'+
       '<div class="kt-num"># '+(inv.orderNum||'')+'</div>'+
@@ -1081,7 +1081,7 @@ function buildInvoicePrintMarkup(inv,mode){
     '</div>';
   var totalWithoutDelivery=Math.max((Number(inv.totalLL)||0)-(Number(inv.deliveryFee)||0),0);
   var clientPage=
-    '<div>'+
+    '<div'+(mode==='both'?' class="kt-page-break"':'')+'>'+
       '<div class="kt-bakery">'+S.bakery+'</div>'+
       '<div class="kt-type">فاتورة</div>'+
       '<div class="kt-num"># '+(inv.orderNum||'')+'</div>'+
@@ -1097,7 +1097,7 @@ function buildInvoicePrintMarkup(inv,mode){
     '</div>';
   if(mode==='kitchen')return kitchenPage;
   if(mode==='client')return clientPage;
-  return kitchenPage+clientPage;
+  return clientPage+kitchenPage;
 }
 
 // ═══ SETTLEMENT ═══
