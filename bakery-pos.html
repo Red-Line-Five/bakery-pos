@@ -241,8 +241,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 /* header */
 #kt .kt-bakery{text-align:center;font-size:22px;font-weight:bold;margin-bottom:2px;}
 #kt .kt-type{text-align:center;font-size:16px;letter-spacing:3px;border:2px solid #000;padding:3px 0;margin:4px 0;}
-#kt .kt-num{text-align:center;font-size:42px;font-weight:bold;line-height:1;margin:6px 0;}
-#kt .kt-meta{text-align:center;font-size:14px;margin-bottom:8px;border-bottom:2px dashed #000;padding-bottom:6px;}
+#kt .kt-num{text-align:center;font-size:30px;font-weight:bold;line-height:1;margin:6px 0;}
+#kt .kt-meta{text-align:center;font-size:20px;margin-bottom:8px;border-bottom:2px dashed #000;padding-bottom:6px;}
 
 /* delivery */
 #kt .kt-delivery{text-align:center;background:#000;color:#fff;padding:6px;margin-bottom:10px;font-size:15px;font-weight:bold;}
@@ -495,18 +495,26 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
     <div id="extra-rules-settings" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
   </div>
-  <div class="s-box">
-    <div class="s-title">Google Sheets</div>
-    <div class="sheets-info">
-      ١. افتح <code>sheets.google.com</code> — Sheet جديد<br>
-      ٢. <code>Extensions → Apps Script</code><br>
-      ٣. انسخ الكود، الصقه، احفظ<br>
-      ٤. <code>Deploy → New deployment → Web app</code><br>
-      ٥. Who has access: <code>Anyone</code><br>
-      ٦. انسخ الـ URL هون
+ 
+ <div class="s-box">
+    <div class="s-title">📱 Telegram — المدير يستلم report تلقائي</div>
+    <div style="background:var(--bluel);border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:12px;line-height:1.8">
+      ١. افتح Telegram وابحث عن <strong>@BotFather</strong><br>
+      ٢. ابعثله <code style="background:#fff;padding:1px 5px;border-radius:3px">/newbot</code> واختارله اسم<br>
+      ٣. انسخ الـ <strong>Token</strong> اللي بيعطيك<br>
+      ٤. افتح البوت وابعثله أي رسالة<br>
+      ٥. افتح: <code style="background:#fff;padding:1px 5px;border-radius:3px;direction:ltr;display:inline-block">api.telegram.org/botTOKEN/getUpdates</code><br>
+      ٦. انسخ رقم <strong>"id"</strong> من النتيجة
     </div>
-    <div class="frow"><div class="flbl">رابط Apps Script</div><input class="finput" id="s-gsheet" placeholder="https://script.google.com/..." style="direction:ltr;font-size:11px;"></div>
-    <button class="btn-add" onclick="copyAppsScript()">نسخ كود Apps Script</button>
+    <div class="frow">
+      <div class="flbl">Bot Token</div>
+      <input class="finput" id="s-telegram-token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" style="direction:ltr;font-size:11px;">
+    </div>
+    <div class="frow">
+      <div class="flbl">Chat ID (رقم المدير)</div>
+      <input class="finput" id="s-telegram-chatid" placeholder="123456789" style="direction:ltr;">
+    </div>
+    <button class="btn-add" onclick="testTelegram()" style="margin-bottom:0">🧪 اختبار الإرسال</button>
   </div>
   <div class="s-box">
     <div class="s-title">استيراد قائمة الأسعار</div>
@@ -545,7 +553,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 // ═══ APP STATE & LOGIC ═══
 
 var DEFAULT_BAKERY_NAME='المخبز';
-var S={whatsapp_owner: "",
+var S={whatsapp_owner: "",telegramToken:'',telegramChatId:'',
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
   rate:90000,bakery:DEFAULT_BAKERY_NAME,gsheetUrl:'',adminPass:'1234',
   deliveryFee:0,extras:[],extraRules:null,orderNum:0
@@ -597,7 +605,9 @@ function persist(){
     gsheetUrl:   S.gsheetUrl,
     extras:      S.extras,
     extraRules:  S.extraRules,
-    products:    S.products
+    products:    S.products,
+    telegramToken:   S.telegramToken,
+    telegramChatId:  S.telegramChatId
   };
 
   if(USE_SERVER){
@@ -720,6 +730,8 @@ function applyState(p){
   S.deliveryFee=p.deliveryFee||0;
   S.extras=p.extras||JSON.parse(JSON.stringify(DEF_EXTRAS));
   S.extraRules=normalizeExtraRules(p.extraRules);
+  S.telegramToken  = p.telegramToken  || '';
+  S.telegramChatId = p.telegramChatId || '';
   S.orderNum=p.orderNum||0;
 }
 
@@ -1085,15 +1097,65 @@ function doSettle(date,invs,total){
   // reset daily order counter so next order starts again from #1
   S.orderNum=0;
   persist();
-  if(S.gsheetUrl){
-    try{fetch(S.gsheetUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'settlement',settle:settle,bakery:S.bakery})});}catch(e){}
-  }
-  // ── Download CSV ──
+
+  //if(S.gsheetUrl){ try{fetch(S.gsheetUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'settlement',settle:settle,bakery:S.bakery})});}catch(e){}}
+  
+
+  testTelegram(settle);
   downloadSettleCSV(settle);
-  sendSettleCSVtoWhatsApp(settle);
+  // sendSettleCSVtoWhatsApp(settle);
 
   showToast('تم الإغلاق — تم تحميل الملف ✓');
   renderOwner();
+}
+
+function testTelegram(settle){
+
+  const token = S.telegramToken;
+  const chatId = S.telegramChatId;
+
+   var itemRows=buildItemSalesRows(settle);
+
+  // Send only item quantities (name + qty), without LL/$ sales columns.
+  var rows=[];
+  rows.push(['── مبيعات الأصناف ──']);
+  rows.push(['الصنف','الكمية المباعة']);
+  itemRows.forEach(function(r){rows.push([r[0],r[1]]);});
+
+  var csv=rows.map(function(r){
+    return r.map(function(cell){
+      var t=String(cell===null||cell===undefined?'':cell);
+      if(t.indexOf(',')>=0||t.indexOf('"')>=0||t.indexOf('\n')>=0){t='"'+t.replace(/"/g,'""')+'"';}
+      return t;
+    }).join(',');
+  }).join('\n');
+
+  var summary=
+    '📊 تقرير الإغلاق\n'+
+    '🏪 '+S.bakery+'\n'+
+    '📅 التاريخ: '+settle.date+'\n'+
+    '🕒 وقت الإغلاق: '+settle.time+'\n'+
+    'إجمالي المبيعات (ل.ل): '+settle.totalLL+'\n'+
+    'إجمالي المبيعات ($): '+(settle.totalLL/settle.rate).toFixed(2)+'\n'+
+    '🧾 عدد الطلبيات: '+settle.count+'\n'+
+    '🍞 عدد الأصناف المباعة: '+itemRows.length+'\n\n'+
+    'CSV:\n'+csv;
+
+
+  fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: summary
+    })
+  })
+  .then(res => res.json())
+  .then(data => console.log(data))
+  .catch(err => console.error(err));
+
 }
 
 function downloadSettleCSV(settle){
@@ -1279,9 +1341,11 @@ function renderSettingsPage(){
   if(el('s-bname'))          el('s-bname').value          = S.bakery||'';
   if(el('s-whatsapp-owner')) el('s-whatsapp-owner').value = S.whatsapp_owner||'';
   if(el('s-rate'))           el('s-rate').value           = S.rate||90000;
-  if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
+ // if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
   if(el('s-delivery-fee'))   el('s-delivery-fee').value   = S.deliveryFee||0;
   if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
+  if(el('s-telegram-token'))  el('s-telegram-token').value  = S.telegramToken||'';
+  if(el('s-telegram-chatid')) el('s-telegram-chatid').value = S.telegramChatId||'';
   renderProdRows();
   renderExtrasSettings();
 }
@@ -1444,6 +1508,8 @@ function saveSettings(){
   S.rate         = parseInt(g('s-rate'))         || 90000;
   S.gsheetUrl    = g('s-gsheet').trim();
   S.deliveryFee  = parseInt(g('s-delivery-fee')) || 0;
+  S.telegramToken  = g('s-telegram-token').trim();
+  S.telegramChatId = g('s-telegram-chatid').trim();
   var newPass    = g('s-admin-pass').trim();
   if(newPass)      S.adminPass = newPass;
   S.extraRules   = normalizeExtraRules(S.extraRules);
@@ -1462,41 +1528,7 @@ function importXLSX(file){if(window.XLSX){doXLSX(file);return;}var s=document.cr
 function doXLSX(file){var r=new FileReader();r.onload=function(e){var wb=XLSX.read(e.target.result,{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});parseCSV(rows.map(function(r){return r.join(',');}).join('\n'));};r.readAsArrayBuffer(file);}
 function applyImport(imp){if(!imp.length){showToast('لم يتم العثور على بيانات');return;}var replace=confirm('تم العثور على '+imp.length+' صنف.\nOK = استبدال | Cancel = إضافة');S.products=replace?imp:S.products.concat(imp);persist();renderProdRows();renderCats();renderItems();showToast('تم استيراد '+imp.length+' صنف ✓');}
 
-// ═══ GOOGLE SHEETS SYNC ═══
-function syncInvoice(inv){if(!S.gsheetUrl)return;try{fetch(S.gsheetUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'addInvoice',invoice:inv,bakery:S.bakery})});}catch(e){}}
-function copyAppsScript(){
-  var code = 'function doPost(e) {\n' +
-  '  var sheet = SpreadsheetApp.getActiveSpreadsheet();\n' +
-  '  var data = JSON.parse(e.postData.contents);\n' +
-  '  var logSheet = sheet.getSheetByName("مبيعات") || sheet.insertSheet("مبيعات");\n' +
-  '  \n' +
-  '  if (logSheet.getLastRow() === 0) {\n' +
-  '    logSheet.appendRow(["التاريخ","الوقت","الأصناف","المجموع ل.ل","$"]);\n' +
-  '  }\n' +
-  '\n' +
-  '  if (data.action === "addInvoice") {\n' +
-  '    var inv = data.invoice;\n' +
-  '    var items = inv.items.map(function(i){ \n' +
-  '      return i.qty + "x " + i.name + (i.variant ? " (" + i.variant + ")" : ""); \n' +
-  '    }).join(", ");\n' +
-  '    logSheet.appendRow([inv.date, inv.time, items, inv.totalLL, (inv.totalLL / inv.rate).toFixed(2)]);\n' +
-  '  }\n' +
-  '\n' +
-  '  if (data.action === "syncDay") {\n' +
-  '    var s2 = sheet.getSheetByName("ملخص") || sheet.insertSheet("ملخص");\n' +
-  '    if (s2.getLastRow() === 0) {\n' +
-  '      s2.appendRow(["التاريخ","عدد الطلبيات","ل.ل","$"]);\n' +
-  '    }\n' +
-  '    s2.appendRow([data.date, data.invoices.length, data.totalLL, data.totalUSD]);\n' +
-  '  }\n' +
-  '  \n' +
-  '  return ContentService.createTextOutput("ok");\n' +
-  '}';
 
-  navigator.clipboard.writeText(code)
-    .then(function(){ showToast('تم نسخ الكود ✓'); })
-    .catch(function(){ alert(code); });
-}
 
 
 // ═══ UTILS ═══

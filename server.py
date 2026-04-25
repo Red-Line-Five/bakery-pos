@@ -7,6 +7,8 @@ import threading
 import time
 import socket
 from urllib.parse import urlparse
+from urllib.request import urlopen
+from urllib.error import URLError
 
 PORT = 5050
 DATA_FILE = 'data.json'
@@ -118,9 +120,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 'gsheetUrl':     payload.get('gsheetUrl', ''),
                 'extras':        payload.get('extras', []),
                 'extraRules':    payload.get('extraRules', {'categories': {}, 'types': {}}),
-                'products':      payload.get('products', [])
+                'products':      payload.get('products', []),
+                'telegramToken':   payload.get('telegramToken', ''),
+                'telegramChatId':  payload.get('telegramChatId', '')
             }
             write_json(SETTINGS_FILE, settings_to_save)
+            self._json({'ok': True})
+            return
+        
+        if parsed.path == '/api/settlement':
+            # Send Telegram notification
+            settle  = payload.get('settle', {})
+            settings = read_json(SETTINGS_FILE, DEFAULT_SETTINGS)
+            token   = settings.get('telegramToken', '')
+            chat_id = settings.get('telegramChatId', '')
+            if token and chat_id:
+                threading.Thread(
+                    target=send_telegram,
+                    args=(token, chat_id, settle),
+                    daemon=True
+                ).start()
             self._json({'ok': True})
             return
 
@@ -154,6 +173,45 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
+def send_telegram(token, chat_id, settle):
+    try:
+        bakery   = settle.get('bakery', 'فرن الأصلي')
+        date     = settle.get('date', '')
+        time_str = settle.get('time', '')
+        total_ll = settle.get('totalLL', 0)
+        rate     = settle.get('rate', 90000)
+        count    = settle.get('count', 0)
+        delivery = settle.get('deliveryCount', 0)
+        total_usd = total_ll / rate if rate else 0
+
+        # Format numbers with commas
+        def fmt(n):
+            return '{:,}'.format(int(n))
+
+        msg = (
+            '\U0001f9fe *' + bakery + ' \u2014 \u0625\u063a\u0644\u0627\u0642 \u0627\u0644\u062d\u0633\u0627\u0628*\n'
+            '\U0001f4c5 ' + date + ' \u2014 ' + time_str + '\n'
+            '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n'
+            '\U0001f4e6 \u0627\u0644\u0637\u0644\u0628\u064a\u0627\u062a: *' + str(count) + '*\n'
+            '\U0001f6f5 \u062a\u0648\u0635\u064a\u0644: *' + str(delivery) + '*\n'
+            '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n'
+            '\U0001f4b0 \u0627\u0644\u0645\u0628\u064a\u0639\u0627\u062a: *' + fmt(total_ll) + ' \u0644.\u0644*\n'
+            '\U0001f4b5 \u0628\u0627\u0644\u062f\u0648\u0644\u0627\u0631: *$' + '{:.2f}'.format(total_usd) + '*'
+        )
+
+        url = 'https://api.telegram.org/bot' + token + '/sendMessage'
+        data = json.dumps({
+            'chat_id':    chat_id,
+            'text':       msg,
+            'parse_mode': 'Markdown'
+        }).encode('utf-8')
+
+        from urllib.request import Request
+        req = Request(url, data=data, headers={'Content-Type': 'application/json'})
+        urlopen(req, timeout=10)
+        print('  Telegram notification sent')
+    except Exception as e:
+        print('  Telegram error: ' + str(e))
 
 def open_browser():
     time.sleep(1.2)
