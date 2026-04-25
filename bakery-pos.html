@@ -1128,7 +1128,7 @@ function doSettle(date,invs,total){
   // ── Download CSV ──
   downloadSettleCSV(settle);
   // sendSettleCSVtoWhatsApp(settle);
-  sendSettleViaTelegram(settle);
+  if(S.telegramToken&&S.telegramChatId){sendSettleViaTelegram(settle);}
   showToast('تم الإغلاق — تم تحميل الملف ✓');
   renderOwner();
 }
