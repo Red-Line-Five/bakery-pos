@@ -38,6 +38,17 @@ git clone https://github.com/Red-Line-Five/bakery-pos.git
 
 ---
 
+
+## 📌 Correct Project Listing Entry
+
+If you are listing this repository in a portfolio table, use the following corrected row:
+
+| Project | Description | Stack |
+|--------|-------------|-------|
+| [**bakery pos**](https://github.com/Red-Line-Five/bakery-pos) | Web-based bakery point-of-sale system with invoicing, product/pricing management, and multi-branch reporting | HTML5 · CSS3 · JavaScript (Vanilla) |
+
+---
+
 ## 👨‍💻 Author
 
 **Charbel Feghaly** — Senior C# / .NET Software Engineer  
