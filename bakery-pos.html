@@ -227,6 +227,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .invoice-print-btn{border:none;border-radius:10px;padding:12px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;}
 .invoice-print-btn.kitchen{background:var(--g);color:#fff;}
 .invoice-print-btn.client{background:var(--blue);color:#fff;}
+.invoice-print-btn.cancel{background:var(--r);color:#fff;}
 .price-opts{display:flex;gap:8px;margin-bottom:10px;}
 .price-opt{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:10px;text-align:center;cursor:pointer;font-size:12px;font-family:var(--font);background:var(--bg);}
 .price-opt.selected{border-color:var(--gm);background:var(--gl);color:var(--g);font-weight:700;}
@@ -1311,10 +1312,11 @@ function openInvoicePrintModal(invIdx){
   if(!inv){showToast('الفاتورة غير موجودة');return;}
   document.getElementById('modal-title').textContent='إعادة طباعة الفاتورة #'+(inv.orderNum||'');
   document.getElementById('modal-body').innerHTML=
-    '<div style="font-size:12px;color:var(--muted)">اختر نوع الطباعة المطلوبة:</div>'+
+    '<div style="font-size:12px;color:var(--muted)">اختر الإجراء:</div>'+
     '<div class="invoice-print-actions">'+
       '<button class="invoice-print-btn kitchen" onclick="reprintInvoice('+invIdx+',\'kitchen\')">🖨️ طباعة للمطبخ</button>'+
       '<button class="invoice-print-btn client" onclick="reprintInvoice('+invIdx+',\'client\')">🧾 طباعة للزبون</button>'+
+      '<button class="invoice-print-btn cancel" onclick="createCancellationInvoice('+invIdx+')">↩️ فاتورة إلغاء</button>'+
     '</div>';
   var actions=document.querySelector('#overlay .modal-btns');
   if(actions)actions.style.display='none';
@@ -1328,6 +1330,43 @@ function reprintInvoice(invIdx,type){
   closeModal();
   window.print();
   showToast('تمت إعادة الطباعة ✓');
+}
+
+function createCancellationInvoice(invIdx){
+  var src=S.invoices[invIdx];
+  if(!src){showToast('الفاتورة غير موجودة');return;}
+  if(src.isCancellation){showToast('هذه الفاتورة هي إلغاء أساساً');return;}
+  var now=new Date();
+  var ref=src.orderNum?('#'+src.orderNum):'';
+  var cancelInv={
+    orderNum:S.orderNum++,
+    date:now.toLocaleDateString('en-GB'),
+    time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+    items:(src.items||[]).map(function(item){
+      return{
+        pid:item.pid,
+        name:item.name,
+        qty:-Math.abs(Number(item.qty)||0),
+        unitPrice:Number(item.unitPrice)||0,
+        extras:Array.isArray(item.extras)?item.extras.slice():[],
+        extrasTotal:Number(item.extrasTotal)||0,
+        variant:item.variant||'',
+        remark:(item.remark?item.remark+' | ':'')+'إلغاء '+ref,
+        lineTotal:-Math.abs(Number(item.lineTotal)||0)
+      };
+    }),
+    totalLL:-Math.abs(Number(src.totalLL)||0),
+    rate:src.rate||S.rate,
+    delivery:false,
+    deliveryFee:0,
+    isCancellation:true,
+    cancelsOrderNum:src.orderNum||null
+  };
+  S.invoices.push(cancelInv);
+  persist();
+  closeModal();
+  renderOwner();
+  showToast('تم إنشاء فاتورة إلغاء سالبة ✓');
 }
 
 // ═══ OWNER ═══
