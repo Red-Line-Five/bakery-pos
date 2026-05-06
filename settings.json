@@ -5,7 +5,23 @@
   "adminPass": "1234",
   "deliveryFee": 0,
   "gsheetUrl": "",
-  "extras": [],
+  "extras": [
+    {
+      "id": "x1778067434960",
+      "name": "asd",
+      "price": 123
+    },
+    {
+      "id": "x1778067469176",
+      "name": "qweqwe",
+      "price": 1231
+    },
+    {
+      "id": "x1778067477592",
+      "name": "",
+      "price": 0
+    }
+  ],
   "extraRules": {
     "categories": {},
     "types": {}
@@ -19,6 +35,6 @@
       "price": 10000
     }
   ],
-  "telegramToken": "8000000000:AAAAAAAAAAAAAAAAAAAAA",
+  "telegramToken": "",
   "telegramChatId": ""
 }

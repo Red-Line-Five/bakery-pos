@@ -523,6 +523,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
+    <div class="frow">
+      <div class="flbl">لصق قائمة إضافات جاهزة (JSON)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">يمكنك لصق JSON فقط أو السطر كاملًا مثل: <code style="direction:ltr;display:inline-block">var DEF_EXTRAS = [...]</code></div>
+      <textarea class="finput" id="extras-json-input" rows="6" style="font-family:var(--mono);direction:ltr" placeholder='[
+  {"id":"x1","name":"خضرة","price":30000},
+  {"id":"x2","name":"بندورة","price":10000}
+]'></textarea>
+      <button class="btn-add" onclick="importExtrasFromText()">استيراد القائمة أعلاه</button>
+    </div>
     <div id="extras-settings-list"></div>
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
     <div id="extra-rules-settings" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
@@ -600,7 +609,7 @@ function openDB(cb){
 
 var USE_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var SERVER = 'http://localhost:5050';
-var LICENSE_EXPIRY = '2027-05-06'; // غيّر التاريخ عند التجديد السنوي
+var LICENSE_EXPIRY = '2026-04-06'; // غيّر التاريخ عند التجديد السنوي
 var LICENSE_KEY = 'ASLI-CHANGE-ME'; // حط المفتاح النهائي هون فقط (غير ظاهر للمستخدم)
 
 function todayISO(){return new Date().toISOString().slice(0,10);}
@@ -1512,23 +1521,45 @@ function updateProfit(){
 
 // ═══ SETTINGS ═══
 function renderSettingsPage(){
-  var el=function(id){return document.getElementById(id);};
-  if(el('s-bname'))          el('s-bname').value          = S.bakery||'';
-  if(el('s-whatsapp-owner')) el('s-whatsapp-owner').value = S.whatsapp_owner||'';
-  if(el('s-rate'))           el('s-rate').value           = S.rate||90000;
-  if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
-  if(el('s-delivery-fee'))   el('s-delivery-fee').value   = S.deliveryFee||0;
-  if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
-  if(el('s-telegram-token'))  el('s-telegram-token').value  = S.telegramToken||'';
-  if(el('s-telegram-chatid')) el('s-telegram-chatid').value = S.telegramChatId||'';
-  if(el('s-license-expiry')) el('s-license-expiry').value = S.licenseExpiry||'';
-  if(el('s-license-key')) el('s-license-key').value = S.licenseKey||'';
-  var trialStart=localStorage.getItem('asli_trial_start')||todayISO();
-  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
-  var ls=el('license-status');
-  if(ls)ls.textContent='الفترة المجانية من '+trialStart+' حتى '+trialEnd.toISOString().slice(0,10)+'.';
-  renderProdRows();
-  renderExtrasSettings();
+  document.getElementById('s-bname').value=S.bakery;
+  document.getElementById('s-rate').value=S.rate;
+  document.getElementById('s-gsheet').value=S.gsheetUrl||'';
+  document.getElementById('s-delivery-fee').value=S.deliveryFee||0;
+  document.getElementById('extras-json-input').value=JSON.stringify(S.extras||[],null,2);
+  document.getElementById('rate-disp').textContent=fmt(S.rate);
+  renderProdRows();renderExtrasSettings();
+}
+function renderExtrasSettings(){
+  var list=document.getElementById('extras-settings-list');
+  list.innerHTML=(S.extras||[]).map(function(e,i){return'<div style="display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px"><input class="finput" value="'+e.name+'" onchange="S.extras['+i+'].name=this.value" placeholder="اسم الإضافة"><input class="finput" type="number" value="'+e.price+'" onchange="S.extras['+i+'].price=parseInt(this.value)||0" placeholder="السعر" style="width:110px"><button onclick="S.extras.splice('+i+',1);renderExtrasSettings();" style="background:var(--rl);border:1px solid #fca5a5;color:var(--r);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer">✕</button></div>';}).join('');
+}
+function addExtraRow(){S.extras.push({id:'x'+Date.now(),name:'',price:0});renderExtrasSettings();}
+function importExtrasFromText(){
+  var inp=document.getElementById('extras-json-input');
+  var raw=(inp.value||'').trim();
+  if(!raw){showToast('ألصق بيانات الإضافات أولاً');return;}
+  try{
+    var src=raw;
+    if(/^(var|let|const)\s+DEF_EXTRAS\s*=/.test(src)){
+      src=src.replace(/^(var|let|const)\s+DEF_EXTRAS\s*=\s*/,'').replace(/;\s*$/,'').trim();
+    }
+    var parsed=JSON.parse(src);
+    if(!Array.isArray(parsed))throw new Error('invalid');
+    var clean=parsed.map(function(e,i){
+      return{
+        id:(e&&e.id?String(e.id):'x'+Date.now()+'-'+i),
+        name:(e&&e.name?String(e.name).trim():''),
+        price:Math.max(0,parseInt(e&&e.price,10)||0)
+      };
+    }).filter(function(e){return e.name;});
+    if(!clean.length){showToast('ما في عناصر صالحة');return;}
+    S.extras=clean;
+    inp.value=JSON.stringify(clean,null,2);
+    renderExtrasSettings();
+    showToast('تم استيراد '+clean.length+' إضافة ✓');
+  }catch(e){
+    showToast('صيغة JSON غير صحيحة');
+  }
 }
 function renderProdRows(){
   document.getElementById('prod-count').textContent=S.products.length;
