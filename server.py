@@ -40,6 +40,7 @@ def read_license_from_registry():
         return None
     try:
         import winreg
+
         # Supports both machine-level and user-level installs.
         # Registry Editor paths:
         # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\AsliPOS
@@ -65,6 +66,7 @@ def read_license_from_registry():
     except Exception:
         return None
     return None
+
 
 
 def read_license_config():
