@@ -35,6 +35,37 @@ DEFAULT_SETTINGS = {
 }
 
 
+def read_license_from_registry():
+    if os.name != 'nt':
+        return None
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\AsliPOS")
+        license_key = winreg.QueryValueEx(key, "LicenseKey")[0]
+        license_expiry = winreg.QueryValueEx(key, "LicenseExpiry")[0]
+        winreg.CloseKey(key)
+        return {
+            "licenseKey": str(license_key).strip().upper(),
+            "licenseExpiry": str(license_expiry).strip()
+        }
+    except Exception:
+        return None
+
+
+def read_license_config():
+    env_key = os.environ.get('ASLI_LICENSE_KEY', '').strip().upper()
+    env_expiry = os.environ.get('ASLI_LICENSE_EXPIRY', '').strip()
+    if env_key and env_expiry:
+        return {"licenseKey": env_key, "licenseExpiry": env_expiry, "source": "env"}
+
+    reg_data = read_license_from_registry()
+    if reg_data:
+        reg_data["source"] = "registry"
+        return reg_data
+
+    return {"licenseKey": "", "licenseExpiry": "", "source": "missing"}
+
+
 def read_json(filename, default):
     path = os.path.join(BASE_DIR, filename)
     if not os.path.exists(path):
@@ -82,6 +113,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/settings':
             self._json(read_json(SETTINGS_FILE, DEFAULT_SETTINGS))
+            return
+
+        if parsed.path == '/api/license':
+            self._json(read_license_config())
             return
 
         super().do_GET()

@@ -516,9 +516,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="s-box">
     <div class="s-title">🔐 الترخيص</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">نسخة مجانية 7 أيام من أول تشغيل. بعد انتهاءها لازم License Key صالح لفتح النظام.</div>
-    <div class="frow"><div class="flbl">تاريخ انتهاء الترخيص</div><input class="finput" id="s-license-expiry" type="date"></div>
-    <div class="frow"><div class="flbl">License Key</div><input class="finput" id="s-license-key" placeholder="ALSI-XXXXXX-YYYYYY"></div>
-    <div id="license-status" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+    <div class="frow"><div class="flbl">License</div><input class="finput" value="Managed by server (Registry/Env)" disabled></div>
   </div>
   <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
@@ -609,7 +607,7 @@ function openDB(cb){
 
 var USE_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var SERVER = 'http://localhost:5050';
-var LICENSE_EXPIRY = '2026-04-06'; // غيّر التاريخ عند التجديد السنوي
+var LICENSE_EXPIRY = ''; // loaded from server / env in production mode
 var LICENSE_KEY = 'ASLI-CHANGE-ME'; // حط المفتاح النهائي هون فقط (غير ظاهر للمستخدم)
 
 function todayISO(){return new Date().toISOString().slice(0,10);}
@@ -649,41 +647,15 @@ function validateLicenseOrBlock(){
   }
 }
 
-function todayISO(){return new Date().toISOString().slice(0,10);}
-function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
-function buildLicenseKey(shopName,expiry){
-  var raw=(shopName||'').trim().toUpperCase()+'|'+(expiry||'')+'|ASLI-POS';
-  var h=0,i;
-  for(i=0;i<raw.length;i++)h=((h<<5)-h)+raw.charCodeAt(i),h|=0;
-  return 'ASLI-'+Math.abs(h).toString(36).toUpperCase();
-}
-function ensureTrialStart(){
-  var k='asli_trial_start';
-  var v=localStorage.getItem(k);
-  if(!v){v=todayISO();localStorage.setItem(k,v);}
-  return v;
-}
-function blockAppForLicense(msg){
-  alert(msg);
-  document.body.innerHTML='<div style="font-family:var(--font);padding:30px;max-width:700px;margin:60px auto;background:#fff;border:2px solid #fca5a5;border-radius:14px;text-align:center"><h2 style="color:#b91c1c;margin-bottom:8px">انتهت النسخة المجانية أو الترخيص</h2><p style="color:#444;line-height:1.8">'+msg+'</p><p style="margin-top:10px;color:#666">يرجى الدفع وتفعيل مفتاح ترخيص سنوي (1 سنة).</p></div>';
-  throw new Error('License blocked');
-}
-function validateLicenseOrBlock(){
-  var trialStart=ensureTrialStart();
-  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
-  var now=new Date();
-  if(now<=trialEnd)return;
-  if(!S.licenseKey||!S.licenseExpiry){
-    blockAppForLicense('انتهت الفترة المجانية بتاريخ '+trialEnd.toISOString().slice(0,10)+'.');
-  }
-  var expected=buildLicenseKey(S.bakery,S.licenseExpiry);
-  if(S.licenseKey.trim().toUpperCase()!==expected){
-    blockAppForLicense('License Key غير صالح لهذا المحل أو تاريخ الانتهاء.');
-  }
-  var exp=new Date(S.licenseExpiry+'T23:59:59');
-  if(now>exp){
-    blockAppForLicense('انتهى الترخيص بتاريخ '+S.licenseExpiry+'. يرجى الدفع للتجديد سنة جديدة.');
-  }
+function loadServerLicense(){
+  if(!USE_SERVER) return Promise.resolve();
+  return fetch(SERVER+'/api/license')
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+      if(p && p.licenseKey) LICENSE_KEY = String(p.licenseKey).trim().toUpperCase();
+      if(p && p.licenseExpiry) LICENSE_EXPIRY = String(p.licenseExpiry).trim();
+    })
+    .catch(function(e){ console.warn('License load error:', e); });
 }
 
 // ── persist ──
@@ -1721,8 +1693,6 @@ function saveSettings(){
   S.deliveryFee  = parseInt(g('s-delivery-fee')) || 0;
   S.telegramToken  = g('s-telegram-token').trim();
   S.telegramChatId = g('s-telegram-chatid').trim();
-  S.licenseExpiry = g('s-license-expiry').trim();
-  S.licenseKey = g('s-license-key').trim().toUpperCase();
   var newPass    = g('s-admin-pass').trim();
   if(newPass)      S.adminPass = newPass;
   S.extraRules   = normalizeExtraRules(S.extraRules);
@@ -1785,6 +1755,7 @@ function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.c
 
 // ═══ INIT ═══
 function initUI(){
+  loadServerLicense().finally(function(){
   validateLicenseOrBlock();
   document.getElementById('m-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('sal-month').value=new Date().toISOString().slice(0,7);
@@ -1797,6 +1768,7 @@ function initUI(){
   renderCats();renderItems();renderCart();
   ['d-name','d-phone','d-address','d-note','d-fee'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('input',renderCart);
+  });
   });
 }
 load();
