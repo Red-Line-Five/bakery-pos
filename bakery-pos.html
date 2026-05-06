@@ -514,13 +514,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="frow"><div class="flbl">رسوم التوصيل الافتراضية (ل.ل)</div><input class="finput" id="s-delivery-fee" type="number" placeholder="0"></div>
   </div>
   <div class="s-box">
-    <div class="s-title">🔐 الترخيص</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">نسخة مجانية 7 أيام من أول تشغيل. بعد انتهاءها لازم License Key صالح لفتح النظام.</div>
-    <div class="frow"><div class="flbl">تاريخ انتهاء الترخيص</div><input class="finput" id="s-license-expiry" type="date"></div>
-    <div class="frow"><div class="flbl">License Key</div><input class="finput" id="s-license-key" placeholder="ALSI-XXXXXX-YYYYYY"></div>
-    <div id="license-status" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
-  </div>
-  <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
     <div id="extras-settings-list"></div>
@@ -568,8 +561,7 @@ var DEFAULT_BAKERY_NAME='المخبز';
 var S={whatsapp_owner: "",telegramToken:'',telegramChatId:'',
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
   rate:90000,bakery:DEFAULT_BAKERY_NAME,adminPass:'1234',
-  deliveryFee:0,extras:[],extraRules:null,orderNum:0,
-  licenseKey:'',licenseExpiry:''
+  deliveryFee:0,extras:[],extraRules:null,orderNum:0
 };
 var delivery={on:false,name:'',phone:'',address:'',note:''};
 var modalCb=null,_cid=0;
@@ -601,43 +593,6 @@ function openDB(cb){
 var USE_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var SERVER = 'http://localhost:5050';
 
-function todayISO(){return new Date().toISOString().slice(0,10);}
-function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
-function buildLicenseKey(shopName,expiry){
-  var raw=(shopName||'').trim().toUpperCase()+'|'+(expiry||'')+'|ASLI-POS';
-  var h=0,i;
-  for(i=0;i<raw.length;i++)h=((h<<5)-h)+raw.charCodeAt(i),h|=0;
-  return 'ASLI-'+Math.abs(h).toString(36).toUpperCase();
-}
-function ensureTrialStart(){
-  var k='asli_trial_start';
-  var v=localStorage.getItem(k);
-  if(!v){v=todayISO();localStorage.setItem(k,v);}
-  return v;
-}
-function blockAppForLicense(msg){
-  alert(msg);
-  document.body.innerHTML='<div style="font-family:var(--font);padding:30px;max-width:700px;margin:60px auto;background:#fff;border:2px solid #fca5a5;border-radius:14px;text-align:center"><h2 style="color:#b91c1c;margin-bottom:8px">انتهت النسخة المجانية أو الترخيص</h2><p style="color:#444;line-height:1.8">'+msg+'</p><p style="margin-top:10px;color:#666">يرجى الدفع وتفعيل مفتاح ترخيص سنوي (1 سنة).</p></div>';
-  throw new Error('License blocked');
-}
-function validateLicenseOrBlock(){
-  var trialStart=ensureTrialStart();
-  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
-  var now=new Date();
-  if(now<=trialEnd)return;
-  if(!S.licenseKey||!S.licenseExpiry){
-    blockAppForLicense('انتهت الفترة المجانية بتاريخ '+trialEnd.toISOString().slice(0,10)+'.');
-  }
-  var expected=buildLicenseKey(S.bakery,S.licenseExpiry);
-  if(S.licenseKey.trim().toUpperCase()!==expected){
-    blockAppForLicense('License Key غير صالح لهذا المحل أو تاريخ الانتهاء.');
-  }
-  var exp=new Date(S.licenseExpiry+'T23:59:59');
-  if(now>exp){
-    blockAppForLicense('انتهى الترخيص بتاريخ '+S.licenseExpiry+'. يرجى الدفع للتجديد سنة جديدة.');
-  }
-}
-
 // ── persist ──
 function persist(){
   var dataPayload = {
@@ -656,9 +611,7 @@ function persist(){
     extraRules:  S.extraRules,
     products:    S.products,
     telegramToken:   S.telegramToken,
-    telegramChatId:  S.telegramChatId,
-    licenseKey:      S.licenseKey,
-    licenseExpiry:   S.licenseExpiry
+    telegramChatId:  S.telegramChatId
   };
 
   if(USE_SERVER){
@@ -781,8 +734,6 @@ function applyState(p){
   S.extraRules=normalizeExtraRules(p.extraRules);
   S.telegramToken  = p.telegramToken  || '';
   S.telegramChatId = p.telegramChatId || '';
-  S.licenseKey = p.licenseKey || '';
-  S.licenseExpiry = p.licenseExpiry || '';
   S.orderNum=p.orderNum||0;
 }
 
@@ -1482,12 +1433,6 @@ function renderSettingsPage(){
   if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
   if(el('s-telegram-token'))  el('s-telegram-token').value  = S.telegramToken||'';
   if(el('s-telegram-chatid')) el('s-telegram-chatid').value = S.telegramChatId||'';
-  if(el('s-license-expiry')) el('s-license-expiry').value = S.licenseExpiry||'';
-  if(el('s-license-key')) el('s-license-key').value = S.licenseKey||'';
-  var trialStart=localStorage.getItem('asli_trial_start')||todayISO();
-  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
-  var ls=el('license-status');
-  if(ls)ls.textContent='الفترة المجانية من '+trialStart+' حتى '+trialEnd.toISOString().slice(0,10)+'.';
   renderProdRows();
   renderExtrasSettings();
 }
@@ -1651,8 +1596,6 @@ function saveSettings(){
   S.deliveryFee  = parseInt(g('s-delivery-fee')) || 0;
   S.telegramToken  = g('s-telegram-token').trim();
   S.telegramChatId = g('s-telegram-chatid').trim();
-  S.licenseExpiry = g('s-license-expiry').trim();
-  S.licenseKey = g('s-license-key').trim().toUpperCase();
   var newPass    = g('s-admin-pass').trim();
   if(newPass)      S.adminPass = newPass;
   S.extraRules   = normalizeExtraRules(S.extraRules);
@@ -1715,7 +1658,6 @@ function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.c
 
 // ═══ INIT ═══
 function initUI(){
-  validateLicenseOrBlock();
   document.getElementById('m-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('sal-month').value=new Date().toISOString().slice(0,7);
   // show version
