@@ -1,0 +1,24 @@
+{
+  "bakery": "Forn Al Asli",
+  "whatsapp_owner": "",
+  "rate": 90000,
+  "adminPass": "1234",
+  "deliveryFee": 0,
+  "gsheetUrl": "",
+  "extras": [],
+  "extraRules": {
+    "categories": {},
+    "types": {}
+  },
+  "products": [
+    {
+      "cat": "asd",
+      "name": "asd",
+      "desc": "",
+      "type": "simple",
+      "price": 10000
+    }
+  ],
+  "telegramToken": "8000000000:AAAAAAAAAAAAAAAAAAAAA",
+  "telegramChatId": ""
+}
