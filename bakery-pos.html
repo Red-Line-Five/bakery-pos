@@ -578,8 +578,7 @@ var DEFAULT_BAKERY_NAME='المخبز';
 var S={whatsapp_owner: "",telegramToken:'',telegramChatId:'',
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
   rate:90000,bakery:DEFAULT_BAKERY_NAME,adminPass:'1234',
-  deliveryFee:0,extras:[],extraRules:null,orderNum:0,
-  licenseKey:'',licenseExpiry:''
+  deliveryFee:0,extras:[],extraRules:null,orderNum:0
 };
 var delivery={on:false,name:'',phone:'',address:'',note:''};
 var modalCb=null,_cid=0;
@@ -679,9 +678,7 @@ function persist(){
     extraRules:  S.extraRules,
     products:    S.products,
     telegramToken:   S.telegramToken,
-    telegramChatId:  S.telegramChatId,
-    licenseKey:      S.licenseKey,
-    licenseExpiry:   S.licenseExpiry
+    telegramChatId:  S.telegramChatId
   };
 
   if(USE_SERVER){
@@ -804,8 +801,6 @@ function applyState(p){
   S.extraRules=normalizeExtraRules(p.extraRules);
   S.telegramToken  = p.telegramToken  || '';
   S.telegramChatId = p.telegramChatId || '';
-  S.licenseKey = p.licenseKey || '';
-  S.licenseExpiry = p.licenseExpiry || '';
   S.orderNum=p.orderNum||0;
 }
 
@@ -1138,7 +1133,11 @@ function retryLastPrint(){
 }
 
 function printKitchen(){
+  if(S.isPrinting) { return; } // 🔒 منع نداء مكرر وين أول طباعة لسا عم تتعالج
   if(!S.cart.length){showToast('الطلبية فارغة');return;}
+
+  S.isPrinting = true;
+
   S.orderNum=(S.orderNum||0)+1;
   var orderNum=S.orderNum;
   var now=new Date();
@@ -1147,10 +1146,6 @@ function printKitchen(){
   var total=calcTotal();
   var deliveryFee=getDeliveryFee();
   var grand=total+deliveryFee;
-  var dName='';
-  var dPhone='';
-  var dAddress='';
-  var dNote='';
   var inv={
     orderNum:orderNum,time:time,date:date,
     items:S.cart.map(function(c){
@@ -1164,10 +1159,8 @@ function printKitchen(){
       };
     }),
     totalLL:grand,rate:S.rate,delivery:delivery.on,deliveryFee:deliveryFee
-   
   };
 
-  // Non-delivery: client print only. Delivery: client + kitchen.
   document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'client');
 
   S.invoices.push(inv);persist();
