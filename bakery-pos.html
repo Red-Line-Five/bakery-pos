@@ -514,8 +514,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="frow"><div class="flbl">رسوم التوصيل الافتراضية (ل.ل)</div><input class="finput" id="s-delivery-fee" type="number" placeholder="0"></div>
   </div>
   <div class="s-box">
+    <div class="s-title">🔐 الترخيص</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">نسخة مجانية 7 أيام من أول تشغيل. بعد انتهاءها لازم License Key صالح لفتح النظام.</div>
+    <div class="frow"><div class="flbl">License</div><input class="finput" value="Managed by server (Registry/Env)" disabled></div>
+  </div>
+  <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
+    <div class="frow">
+      <div class="flbl">لصق قائمة إضافات جاهزة (JSON)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">يمكنك لصق JSON فقط أو السطر كاملًا مثل: <code style="direction:ltr;display:inline-block">var DEF_EXTRAS = [...]</code></div>
+      <textarea class="finput" id="extras-json-input" rows="6" style="font-family:var(--mono);direction:ltr" placeholder='[
+  {"id":"x1","name":"خضرة","price":30000},
+  {"id":"x2","name":"بندورة","price":10000}
+]'></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-add" onclick="syncExtrasTextFromCurrent()">تحديث النص من القائمة الحالية</button>
+        <button class="btn-add" onclick="importExtrasFromText()">تطبيق التحديث من النص</button>
+      </div>
+    </div>
     <div id="extras-settings-list"></div>
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
     <div id="extra-rules-settings" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
@@ -592,6 +609,56 @@ function openDB(cb){
 
 var USE_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var SERVER = 'http://localhost:5050';
+var LICENSE_EXPIRY = ''; // loaded from server / env in production mode
+var LICENSE_KEY = 'ASLI-CHANGE-ME'; // حط المفتاح النهائي هون فقط (غير ظاهر للمستخدم)
+
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
+function buildLicenseKey(shopName,expiry){
+  var raw=(shopName||'').trim().toUpperCase()+'|'+(expiry||'')+'|ASLI-POS';
+  var h=0,i;
+  for(i=0;i<raw.length;i++)h=((h<<5)-h)+raw.charCodeAt(i),h|=0;
+  return 'ASLI-'+Math.abs(h).toString(36).toUpperCase();
+}
+function ensureTrialStart(){
+  var k='asli_trial_start';
+  var v=localStorage.getItem(k);
+  if(!v){v=todayISO();localStorage.setItem(k,v);}
+  return v;
+}
+function blockAppForLicense(msg){
+  alert(msg);
+  document.body.innerHTML='<div style="font-family:var(--font);padding:30px;max-width:700px;margin:60px auto;background:#fff;border:2px solid #fca5a5;border-radius:14px;text-align:center"><h2 style="color:#b91c1c;margin-bottom:8px">انتهت النسخة المجانية أو الترخيص</h2><p style="color:#444;line-height:1.8">'+msg+'</p><p style="margin-top:10px;color:#666">يرجى الدفع وتفعيل مفتاح ترخيص سنوي (1 سنة).</p></div>';
+  throw new Error('License blocked');
+}
+function validateLicenseOrBlock(){
+  var trialStart=ensureTrialStart();
+  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
+  var now=new Date();
+  if(now<=trialEnd)return;
+  if(!LICENSE_KEY||!LICENSE_EXPIRY||LICENSE_KEY==='ASLI-CHANGE-ME'){
+    blockAppForLicense('انتهت الفترة المجانية بتاريخ '+trialEnd.toISOString().slice(0,10)+'.');
+  }
+  var expected=buildLicenseKey(S.bakery,LICENSE_EXPIRY);
+  if(LICENSE_KEY.trim().toUpperCase()!==expected){
+    blockAppForLicense('License Key غير صالح لهذا المحل أو تاريخ الانتهاء.');
+  }
+  var exp=new Date(LICENSE_EXPIRY+'T23:59:59');
+  if(now>exp){
+    blockAppForLicense('انتهى الترخيص بتاريخ '+LICENSE_EXPIRY+'. يرجى الدفع للتجديد سنة جديدة.');
+  }
+}
+
+function loadServerLicense(){
+  if(!USE_SERVER) return Promise.resolve();
+  return fetch(SERVER+'/api/license')
+    .then(function(r){ return r.json(); })
+    .then(function(p){
+      if(p && p.licenseKey) LICENSE_KEY = String(p.licenseKey).trim().toUpperCase();
+      if(p && p.licenseExpiry) LICENSE_EXPIRY = String(p.licenseExpiry).trim();
+    })
+    .catch(function(e){ console.warn('License load error:', e); });
+}
 
 // ── persist ──
 function persist(){
@@ -1004,6 +1071,67 @@ function closeModal(){
 function closePanel(i){var sp=document.getElementById('sp-'+i);if(sp)sp.classList.remove('open');}
 
 // ═══ PRINT ═══
+function safePrintReceipt(successMsg,onPrinted){
+  if(typeof window.print!=='function'){
+    showPrinterError('الطباعة غير مدعومة في هذا المتصفح.');
+    return false;
+  }
+  try{
+    window.focus();
+    window.print();
+    showPrintFollowUp(successMsg,onPrinted);
+    return true;
+  }catch(e){
+    showPrinterError('فشلت الطباعة. تأكد من تشغيل الطابعة وأنها Default Printer ثم جرّب مرة ثانية.');
+    return false;
+  }
+}
+
+function showPrinterError(msg){
+  document.getElementById('modal-title').textContent='مشكلة في الطابعة';
+  document.getElementById('modal-body').innerHTML=
+    '<div style="background:var(--rl);border:1px solid #fca5a5;color:var(--r);border-radius:10px;padding:12px;font-size:13px;line-height:1.8">'+
+      '🖨️ '+msg+
+      '<br>• تأكد أن الطابعة شغالة ومتصلة.'+
+      '<br>• تأكد أنها الطابعة الافتراضية في Windows.'+
+      '<br>• إذا ظهرت رسالة Printer failed، أصلح الطابعة ثم اضغط إعادة المحاولة.'+
+    '</div>'+
+    '<div class="invoice-print-actions">'+
+      '<button class="invoice-print-btn kitchen" onclick="retryLastPrint()">إعادة المحاولة</button>'+
+      '<button class="invoice-print-btn cancel" onclick="closeModal()">إغلاق</button>'+
+    '</div>';
+  var actions=document.querySelector('#overlay .modal-btns');
+  if(actions)actions.style.display='none';
+  document.getElementById('overlay').classList.add('open');
+}
+
+function showPrintFollowUp(successMsg,onPrinted){
+  document.getElementById('modal-title').textContent='تأكيد الطباعة';
+  document.getElementById('modal-body').innerHTML=
+    '<div style="font-size:13px;color:var(--muted);line-height:1.8">إذا لم تطبع الفاتورة أو ظهرت رسالة <strong>Printer failed</strong>، تأكد من الطابعة ثم اضغط إعادة المحاولة.</div>'+
+    '<div class="invoice-print-actions">'+
+      '<button class="invoice-print-btn client" onclick="confirmReceiptPrinted()">تمت الطباعة</button>'+
+      '<button class="invoice-print-btn kitchen" onclick="retryLastPrint()">إعادة المحاولة</button>'+
+    '</div>';
+  window._printSuccessMsg=successMsg;
+  window._printDoneCb=onPrinted||null;
+  var actions=document.querySelector('#overlay .modal-btns');
+  if(actions)actions.style.display='none';
+  document.getElementById('overlay').classList.add('open');
+}
+
+function confirmReceiptPrinted(){
+  var cb=window._printDoneCb;
+  window._printDoneCb=null;
+  if(typeof cb==='function')cb();
+  closeModal();
+  showToast(window._printSuccessMsg||'تمت الطباعة ✓');
+}
+
+function retryLastPrint(){
+  safePrintReceipt(window._printSuccessMsg||'تمت الطباعة ✓', window._printDoneCb||null);
+}
+
 function printKitchen(){
   if(S.isPrinting) { return; } // 🔒 منع نداء مكرر وين أول طباعة لسا عم تتعالج
   if(!S.cart.length){showToast('الطلبية فارغة');return;}
@@ -1036,18 +1164,10 @@ function printKitchen(){
   document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'client');
 
   S.invoices.push(inv);persist();
-
-  window.onafterprint = function(){
-    document.getElementById('kt').innerHTML = ''; // نضف الفيش
-    S.isPrinting = false;                          // فك القفل
-    window.onafterprint = null;
-  };
-
-  window.print();
-
-  showToast('طباعة طلبية #'+orderNum+' ✓');
-  clearCart();
-  resetDeliveryOrderState();
+  safePrintReceipt('طباعة طلبية #'+orderNum+' ✓', function(){
+    clearCart();
+    resetDeliveryOrderState();
+  });
 }
 
 function buildInvoicePrintMarkup(inv,mode){
@@ -1334,8 +1454,7 @@ function reprintInvoice(invIdx,type){
   if(!inv){showToast('الفاتورة غير موجودة');return;}
   document.getElementById('kt').innerHTML=buildInvoicePrintMarkup(inv,type);
   closeModal();
-  window.print();
-  showToast('تمت إعادة الطباعة ✓');
+  safePrintReceipt('تمت إعادة الطباعة ✓');
 }
 
 function createCancellationInvoice(invIdx){
@@ -1430,17 +1549,47 @@ function updateProfit(){
 
 // ═══ SETTINGS ═══
 function renderSettingsPage(){
-  var el=function(id){return document.getElementById(id);};
-  if(el('s-bname'))          el('s-bname').value          = S.bakery||'';
-  if(el('s-whatsapp-owner')) el('s-whatsapp-owner').value = S.whatsapp_owner||'';
-  if(el('s-rate'))           el('s-rate').value           = S.rate||90000;
-  if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
-  if(el('s-delivery-fee'))   el('s-delivery-fee').value   = S.deliveryFee||0;
-  if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
-  if(el('s-telegram-token'))  el('s-telegram-token').value  = S.telegramToken||'';
-  if(el('s-telegram-chatid')) el('s-telegram-chatid').value = S.telegramChatId||'';
-  renderProdRows();
-  renderExtrasSettings();
+  document.getElementById('s-bname').value=S.bakery;
+  document.getElementById('s-rate').value=S.rate;
+  document.getElementById('s-gsheet').value=S.gsheetUrl||'';
+  document.getElementById('s-delivery-fee').value=S.deliveryFee||0;
+  document.getElementById('extras-json-input').value=JSON.stringify(S.extras||[],null,2);
+  document.getElementById('rate-disp').textContent=fmt(S.rate);
+  renderProdRows();renderExtrasSettings();
+}
+function syncExtrasTextFromCurrent(){
+  var inp=document.getElementById('extras-json-input');
+  if(!inp)return;
+  inp.value=JSON.stringify(S.extras||[],null,2);
+  showToast('تم تحديث النص من الإضافات الحالية ✓');
+}
+function importExtrasFromText(){
+  var inp=document.getElementById('extras-json-input');
+  var raw=(inp.value||'').trim();
+  if(!raw){showToast('ألصق بيانات الإضافات أولاً');return;}
+  try{
+    var src=raw;
+    if(/^(var|let|const)\s+DEF_EXTRAS\s*=/.test(src)){
+      src=src.replace(/^(var|let|const)\s+DEF_EXTRAS\s*=\s*/,'').replace(/;\s*$/,'').trim();
+    }
+    var parsed=JSON.parse(src);
+    if(!Array.isArray(parsed))throw new Error('invalid');
+    var clean=parsed.map(function(e,i){
+      return{
+        id:(e&&e.id?String(e.id):'x'+Date.now()+'-'+i),
+        name:(e&&e.name?String(e.name).trim():''),
+        price:Math.max(0,parseInt(e&&e.price,10)||0)
+      };
+    }).filter(function(e){return e.name;});
+    if(!clean.length){showToast('ما في عناصر صالحة');return;}
+    S.extras=clean;
+    inp.value=JSON.stringify(clean,null,2);
+    renderExtrasSettings();
+    persist();
+    showToast('تم استيراد '+clean.length+' إضافة ✓');
+  }catch(e){
+    showToast('صيغة JSON غير صحيحة');
+  }
 }
 function renderProdRows(){
   document.getElementById('prod-count').textContent=S.products.length;
@@ -1664,6 +1813,8 @@ function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.c
 
 // ═══ INIT ═══
 function initUI(){
+  loadServerLicense().finally(function(){
+  validateLicenseOrBlock();
   document.getElementById('m-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('sal-month').value=new Date().toISOString().slice(0,7);
   // show version
@@ -1675,6 +1826,7 @@ function initUI(){
   renderCats();renderItems();renderCart();
   ['d-name','d-phone','d-address','d-note','d-fee'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('input',renderCart);
+  });
   });
 }
 load();
