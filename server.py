@@ -6,6 +6,12 @@ import webbrowser
 import threading
 import time
 import socket
+
+if os.name == 'nt':
+    import winreg
+else:
+    winreg = None
+
 from urllib.parse import urlparse
 from urllib.request import urlopen
 from urllib.error import URLError
@@ -39,7 +45,6 @@ def read_license_from_registry():
     if os.name != 'nt':
         return None
     try:
-        import winreg
         # Supports both machine-level and user-level installs.
         # Registry Editor paths:
         # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\AsliPOS
@@ -78,7 +83,12 @@ def read_license_config():
         reg_data["source"] = "registry"
         return reg_data
 
-    return {"licenseKey": "", "licenseExpiry": "", "source": "missing"}
+    return {
+        "licenseKey": "",
+        "licenseExpiry": "",
+        "source": "missing",
+        "hint": "Set ASLI_LICENSE_KEY and ASLI_LICENSE_EXPIRY, or create LicenseKey and LicenseExpiry under Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\AsliPOS."
+    }
 
 
 def read_json(filename, default):
