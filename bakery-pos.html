@@ -514,25 +514,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="frow"><div class="flbl">رسوم التوصيل الافتراضية (ل.ل)</div><input class="finput" id="s-delivery-fee" type="number" placeholder="0"></div>
   </div>
   <div class="s-box">
-    <div class="s-title">🔐 الترخيص</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">نسخة مجانية 7 أيام من أول تشغيل. بعد انتهاءها لازم License Key صالح لفتح النظام.</div>
-    <div class="frow"><div class="flbl">License</div><input class="finput" value="Managed by server (Registry/Env)" disabled></div>
-  </div>
-  <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
-    <div class="frow">
-      <div class="flbl">لصق قائمة إضافات جاهزة (JSON)</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">يمكنك لصق JSON فقط أو السطر كاملًا مثل: <code style="direction:ltr;display:inline-block">var DEF_EXTRAS = [...]</code></div>
-      <textarea class="finput" id="extras-json-input" rows="6" style="font-family:var(--mono);direction:ltr" placeholder='[
-  {"id":"x1","name":"خضرة","price":30000},
-  {"id":"x2","name":"بندورة","price":10000}
-]'></textarea>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-add" onclick="syncExtrasTextFromCurrent()">تحديث النص من القائمة الحالية</button>
-        <button class="btn-add" onclick="importExtrasFromText()">تطبيق التحديث من النص</button>
-      </div>
-    </div>
     <div id="extras-settings-list"></div>
     <button class="btn-add" onclick="addExtraRow()">+ إضافة extra جديد</button>
     <div id="extra-rules-settings" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
@@ -578,8 +561,7 @@ var DEFAULT_BAKERY_NAME='المخبز';
 var S={whatsapp_owner: "",telegramToken:'',telegramChatId:'',
   products:[],cart:[],invoices:[],settlements:[],masarif:[],
   rate:90000,bakery:DEFAULT_BAKERY_NAME,adminPass:'1234',
-  deliveryFee:0,extras:[],extraRules:null,orderNum:0,
-  licenseKey:'',licenseExpiry:''
+  deliveryFee:0,extras:[],extraRules:null,orderNum:0
 };
 var delivery={on:false,name:'',phone:'',address:'',note:''};
 var modalCb=null,_cid=0;
@@ -629,9 +611,7 @@ function persist(){
     extraRules:  S.extraRules,
     products:    S.products,
     telegramToken:   S.telegramToken,
-    telegramChatId:  S.telegramChatId,
-    licenseKey:      S.licenseKey,
-    licenseExpiry:   S.licenseExpiry
+    telegramChatId:  S.telegramChatId
   };
 
   if(USE_SERVER){
@@ -754,8 +734,6 @@ function applyState(p){
   S.extraRules=normalizeExtraRules(p.extraRules);
   S.telegramToken  = p.telegramToken  || '';
   S.telegramChatId = p.telegramChatId || '';
-  S.licenseKey = p.licenseKey || '';
-  S.licenseExpiry = p.licenseExpiry || '';
   S.orderNum=p.orderNum||0;
 }
 
@@ -1026,27 +1004,6 @@ function closeModal(){
 function closePanel(i){var sp=document.getElementById('sp-'+i);if(sp)sp.classList.remove('open');}
 
 // ═══ PRINT ═══
-function safePrintReceipt(successMsg,onPrinted){
-  if(typeof window.print!=='function'){
-    showPrinterError('الطباعة غير مدعومة في هذا المتصفح.');
-    return false;
-  }
-  try{
-    window.focus();
-    window.print();
-    showPrintFollowUp(successMsg,onPrinted);
-    return true;
-  }catch(e){
-    showPrinterError('فشلت الطباعة. تأكد من تشغيل الطابعة وأنها Default Printer ثم جرّب مرة ثانية.');
-    return false;
-  }
-}
-
-function showPrinterError(msg){
-  showToast(msg);
-  alert(msg+'\n\nتأكد أن الطابعة شغالة ومتصلة وأنها Default Printer في Windows، ثم جرّب الطباعة مرة ثانية.');
-}
-
 function printKitchen(){
   if(!S.cart.length){showToast('الطلبية فارغة');return;}
   S.orderNum=(S.orderNum||0)+1;
@@ -1081,10 +1038,10 @@ function printKitchen(){
   document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'client');
 
   S.invoices.push(inv);persist();
-  safePrintReceipt('طباعة طلبية #'+orderNum+' ✓', function(){
-    clearCart();
-    resetDeliveryOrderState();
-  });
+  window.print();
+  showToast('طباعة طلبية #'+orderNum+' ✓');
+  clearCart();
+  resetDeliveryOrderState();
 }
 
 function buildInvoicePrintMarkup(inv,mode){
@@ -1371,7 +1328,8 @@ function reprintInvoice(invIdx,type){
   if(!inv){showToast('الفاتورة غير موجودة');return;}
   document.getElementById('kt').innerHTML=buildInvoicePrintMarkup(inv,type);
   closeModal();
-  safePrintReceipt('تمت إعادة الطباعة ✓');
+  window.print();
+  showToast('تمت إعادة الطباعة ✓');
 }
 
 function createCancellationInvoice(invIdx){
@@ -1466,47 +1424,17 @@ function updateProfit(){
 
 // ═══ SETTINGS ═══
 function renderSettingsPage(){
-  document.getElementById('s-bname').value=S.bakery;
-  document.getElementById('s-rate').value=S.rate;
-  document.getElementById('s-gsheet').value=S.gsheetUrl||'';
-  document.getElementById('s-delivery-fee').value=S.deliveryFee||0;
-  document.getElementById('extras-json-input').value=JSON.stringify(S.extras||[],null,2);
-  document.getElementById('rate-disp').textContent=fmt(S.rate);
-  renderProdRows();renderExtrasSettings();
-}
-function syncExtrasTextFromCurrent(){
-  var inp=document.getElementById('extras-json-input');
-  if(!inp)return;
-  inp.value=JSON.stringify(S.extras||[],null,2);
-  showToast('تم تحديث النص من الإضافات الحالية ✓');
-}
-function importExtrasFromText(){
-  var inp=document.getElementById('extras-json-input');
-  var raw=(inp.value||'').trim();
-  if(!raw){showToast('ألصق بيانات الإضافات أولاً');return;}
-  try{
-    var src=raw;
-    if(/^(var|let|const)\s+DEF_EXTRAS\s*=/.test(src)){
-      src=src.replace(/^(var|let|const)\s+DEF_EXTRAS\s*=\s*/,'').replace(/;\s*$/,'').trim();
-    }
-    var parsed=JSON.parse(src);
-    if(!Array.isArray(parsed))throw new Error('invalid');
-    var clean=parsed.map(function(e,i){
-      return{
-        id:(e&&e.id?String(e.id):'x'+Date.now()+'-'+i),
-        name:(e&&e.name?String(e.name).trim():''),
-        price:Math.max(0,parseInt(e&&e.price,10)||0)
-      };
-    }).filter(function(e){return e.name;});
-    if(!clean.length){showToast('ما في عناصر صالحة');return;}
-    S.extras=clean;
-    inp.value=JSON.stringify(clean,null,2);
-    renderExtrasSettings();
-    persist();
-    showToast('تم استيراد '+clean.length+' إضافة ✓');
-  }catch(e){
-    showToast('صيغة JSON غير صحيحة');
-  }
+  var el=function(id){return document.getElementById(id);};
+  if(el('s-bname'))          el('s-bname').value          = S.bakery||'';
+  if(el('s-whatsapp-owner')) el('s-whatsapp-owner').value = S.whatsapp_owner||'';
+  if(el('s-rate'))           el('s-rate').value           = S.rate||90000;
+  if(el('s-gsheet'))         el('s-gsheet').value         = S.gsheetUrl||'';
+  if(el('s-delivery-fee'))   el('s-delivery-fee').value   = S.deliveryFee||0;
+  if(el('rate-disp'))        el('rate-disp').textContent  = fmt(S.rate);
+  if(el('s-telegram-token'))  el('s-telegram-token').value  = S.telegramToken||'';
+  if(el('s-telegram-chatid')) el('s-telegram-chatid').value = S.telegramChatId||'';
+  renderProdRows();
+  renderExtrasSettings();
 }
 function renderProdRows(){
   document.getElementById('prod-count').textContent=S.products.length;
@@ -1741,7 +1669,6 @@ function initUI(){
   renderCats();renderItems();renderCart();
   ['d-name','d-phone','d-address','d-note','d-fee'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('input',renderCart);
-  });
   });
 }
 load();
