@@ -609,56 +609,6 @@ function openDB(cb){
 
 var USE_SERVER = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 var SERVER = 'http://localhost:5050';
-var LICENSE_EXPIRY = ''; // loaded from server / env in production mode
-var LICENSE_KEY = 'ASLI-CHANGE-ME'; // حط المفتاح النهائي هون فقط (غير ظاهر للمستخدم)
-
-function todayISO(){return new Date().toISOString().slice(0,10);}
-function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10);}
-function buildLicenseKey(shopName,expiry){
-  var raw=(shopName||'').trim().toUpperCase()+'|'+(expiry||'')+'|ASLI-POS';
-  var h=0,i;
-  for(i=0;i<raw.length;i++)h=((h<<5)-h)+raw.charCodeAt(i),h|=0;
-  return 'ASLI-'+Math.abs(h).toString(36).toUpperCase();
-}
-function ensureTrialStart(){
-  var k='asli_trial_start';
-  var v=localStorage.getItem(k);
-  if(!v){v=todayISO();localStorage.setItem(k,v);}
-  return v;
-}
-function blockAppForLicense(msg){
-  alert(msg);
-  document.body.innerHTML='<div style="font-family:var(--font);padding:30px;max-width:700px;margin:60px auto;background:#fff;border:2px solid #fca5a5;border-radius:14px;text-align:center"><h2 style="color:#b91c1c;margin-bottom:8px">انتهت النسخة المجانية أو الترخيص</h2><p style="color:#444;line-height:1.8">'+msg+'</p><p style="margin-top:10px;color:#666">يرجى الدفع وتفعيل مفتاح ترخيص سنوي (1 سنة).</p></div>';
-  throw new Error('License blocked');
-}
-function validateLicenseOrBlock(){
-  var trialStart=ensureTrialStart();
-  var trialEnd=new Date(trialStart);trialEnd.setDate(trialEnd.getDate()+7);
-  var now=new Date();
-  if(now<=trialEnd)return;
-  if(!LICENSE_KEY||!LICENSE_EXPIRY||LICENSE_KEY==='ASLI-CHANGE-ME'){
-    blockAppForLicense('انتهت الفترة المجانية بتاريخ '+trialEnd.toISOString().slice(0,10)+'.');
-  }
-  var expected=buildLicenseKey(S.bakery,LICENSE_EXPIRY);
-  if(LICENSE_KEY.trim().toUpperCase()!==expected){
-    blockAppForLicense('License Key غير صالح لهذا المحل أو تاريخ الانتهاء.');
-  }
-  var exp=new Date(LICENSE_EXPIRY+'T23:59:59');
-  if(now>exp){
-    blockAppForLicense('انتهى الترخيص بتاريخ '+LICENSE_EXPIRY+'. يرجى الدفع للتجديد سنة جديدة.');
-  }
-}
-
-function loadServerLicense(){
-  if(!USE_SERVER) return Promise.resolve();
-  return fetch(SERVER+'/api/license')
-    .then(function(r){ return r.json(); })
-    .then(function(p){
-      if(p && p.licenseKey) LICENSE_KEY = String(p.licenseKey).trim().toUpperCase();
-      if(p && p.licenseExpiry) LICENSE_EXPIRY = String(p.licenseExpiry).trim();
-    })
-    .catch(function(e){ console.warn('License load error:', e); });
-}
 
 // ── persist ──
 function persist(){
@@ -1088,48 +1038,8 @@ function safePrintReceipt(successMsg,onPrinted){
 }
 
 function showPrinterError(msg){
-  document.getElementById('modal-title').textContent='مشكلة في الطابعة';
-  document.getElementById('modal-body').innerHTML=
-    '<div style="background:var(--rl);border:1px solid #fca5a5;color:var(--r);border-radius:10px;padding:12px;font-size:13px;line-height:1.8">'+
-      '🖨️ '+msg+
-      '<br>• تأكد أن الطابعة شغالة ومتصلة.'+
-      '<br>• تأكد أنها الطابعة الافتراضية في Windows.'+
-      '<br>• إذا ظهرت رسالة Printer failed، أصلح الطابعة ثم اضغط إعادة المحاولة.'+
-    '</div>'+
-    '<div class="invoice-print-actions">'+
-      '<button class="invoice-print-btn kitchen" onclick="retryLastPrint()">إعادة المحاولة</button>'+
-      '<button class="invoice-print-btn cancel" onclick="closeModal()">إغلاق</button>'+
-    '</div>';
-  var actions=document.querySelector('#overlay .modal-btns');
-  if(actions)actions.style.display='none';
-  document.getElementById('overlay').classList.add('open');
-}
-
-function showPrintFollowUp(successMsg,onPrinted){
-  document.getElementById('modal-title').textContent='تأكيد الطباعة';
-  document.getElementById('modal-body').innerHTML=
-    '<div style="font-size:13px;color:var(--muted);line-height:1.8">إذا لم تطبع الفاتورة أو ظهرت رسالة <strong>Printer failed</strong>، تأكد من الطابعة ثم اضغط إعادة المحاولة.</div>'+
-    '<div class="invoice-print-actions">'+
-      '<button class="invoice-print-btn client" onclick="confirmReceiptPrinted()">تمت الطباعة</button>'+
-      '<button class="invoice-print-btn kitchen" onclick="retryLastPrint()">إعادة المحاولة</button>'+
-    '</div>';
-  window._printSuccessMsg=successMsg;
-  window._printDoneCb=onPrinted||null;
-  var actions=document.querySelector('#overlay .modal-btns');
-  if(actions)actions.style.display='none';
-  document.getElementById('overlay').classList.add('open');
-}
-
-function confirmReceiptPrinted(){
-  var cb=window._printDoneCb;
-  window._printDoneCb=null;
-  if(typeof cb==='function')cb();
-  closeModal();
-  showToast(window._printSuccessMsg||'تمت الطباعة ✓');
-}
-
-function retryLastPrint(){
-  safePrintReceipt(window._printSuccessMsg||'تمت الطباعة ✓', window._printDoneCb||null);
+  showToast(msg);
+  alert(msg+'\n\nتأكد أن الطابعة شغالة ومتصلة وأنها Default Printer في Windows، ثم جرّب الطباعة مرة ثانية.');
 }
 
 function printKitchen(){
@@ -1813,8 +1723,6 @@ function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.c
 
 // ═══ INIT ═══
 function initUI(){
-  loadServerLicense().finally(function(){
-  validateLicenseOrBlock();
   document.getElementById('m-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('sal-month').value=new Date().toISOString().slice(0,7);
   // show version

@@ -7,11 +7,6 @@ import threading
 import time
 import socket
 
-if os.name == 'nt':
-    import winreg
-else:
-    winreg = None
-
 from urllib.parse import urlparse
 from urllib.request import urlopen
 from urllib.error import URLError
