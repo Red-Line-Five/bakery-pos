@@ -36,6 +36,56 @@ DEFAULT_SETTINGS = {
 }
 
 
+def read_license_from_registry():
+    if os.name != 'nt':
+        return None
+    try:
+        # Supports both machine-level and user-level installs.
+        # Registry Editor paths:
+        # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\AsliPOS
+        # Computer\HKEY_CURRENT_USER\SOFTWARE\AsliPOS
+        locations = [
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\AsliPOS"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\AsliPOS"),
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\AsliPOS"),
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\WOW6432Node\AsliPOS"),
+        ]
+        for hive, subkey in locations:
+            try:
+                key = winreg.OpenKey(hive, subkey)
+                license_key = winreg.QueryValueEx(key, "LicenseKey")[0]
+                license_expiry = winreg.QueryValueEx(key, "LicenseExpiry")[0]
+                winreg.CloseKey(key)
+                return {
+                    "licenseKey": str(license_key).strip().upper(),
+                    "licenseExpiry": str(license_expiry).strip()
+                }
+            except Exception:
+                continue
+    except Exception:
+        return None
+    return None
+
+
+def read_license_config():
+    env_key = os.environ.get('ASLI_LICENSE_KEY', '').strip().upper()
+    env_expiry = os.environ.get('ASLI_LICENSE_EXPIRY', '').strip()
+    if env_key and env_expiry:
+        return {"licenseKey": env_key, "licenseExpiry": env_expiry, "source": "env"}
+
+    reg_data = read_license_from_registry()
+    if reg_data:
+        reg_data["source"] = "registry"
+        return reg_data
+
+    return {
+        "licenseKey": "",
+        "licenseExpiry": "",
+        "source": "missing",
+        "hint": "Set ASLI_LICENSE_KEY and ASLI_LICENSE_EXPIRY, or create LicenseKey and LicenseExpiry under Computer\\HKEY_LOCAL_MACHINE\\SOFTWARE\\AsliPOS."
+    }
+
+
 def read_json(filename, default):
     path = os.path.join(BASE_DIR, filename)
     if not os.path.exists(path):
@@ -83,6 +133,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if parsed.path == '/api/settings':
             self._json(read_json(SETTINGS_FILE, DEFAULT_SETTINGS))
+            return
+
+        if parsed.path == '/api/license':
+            self._json(read_license_config())
             return
 
         super().do_GET()

@@ -514,6 +514,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="frow"><div class="flbl">رسوم التوصيل الافتراضية (ل.ل)</div><input class="finput" id="s-delivery-fee" type="number" placeholder="0"></div>
   </div>
   <div class="s-box">
+    <div class="s-title">🔐 الترخيص</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">نسخة مجانية 7 أيام من أول تشغيل. بعد انتهاءها لازم License Key صالح لفتح النظام.</div>
+    <div class="frow"><div class="flbl">License</div><input class="finput" value="Managed by server (Registry/Env)" disabled></div>
+  </div>
+  <div class="s-box">
     <div class="s-title">الإضافات (Extras)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">هذه الإضافات تظهر كـ checkbox عند إضافة منقوشة أو أي صنف</div>
     <div class="frow">
@@ -1023,15 +1028,8 @@ function safePrintReceipt(successMsg,onPrinted){
   }
   try{
     window.focus();
-    setTimeout(function(){
-      try{
-        window.print();
-        if(typeof onPrinted==='function')onPrinted();
-        showToast(successMsg||'تمت الطباعة ✓');
-      }catch(e){
-        showPrinterError('فشلت الطباعة. تأكد من تشغيل الطابعة وأنها Default Printer ثم جرّب مرة ثانية.');
-      }
-    },150);
+    window.print();
+    showPrintFollowUp(successMsg,onPrinted);
     return true;
   }catch(e){
     showPrinterError('فشلت الطباعة. تأكد من تشغيل الطابعة وأنها Default Printer ثم جرّب مرة ثانية.');
@@ -1045,7 +1043,11 @@ function showPrinterError(msg){
 }
 
 function printKitchen(){
+  if(S.isPrinting) { return; } // 🔒 منع نداء مكرر وين أول طباعة لسا عم تتعالج
   if(!S.cart.length){showToast('الطلبية فارغة');return;}
+
+  S.isPrinting = true;
+
   S.orderNum=(S.orderNum||0)+1;
   var orderNum=S.orderNum;
   var now=new Date();
@@ -1054,10 +1056,6 @@ function printKitchen(){
   var total=calcTotal();
   var deliveryFee=getDeliveryFee();
   var grand=total+deliveryFee;
-  var dName='';
-  var dPhone='';
-  var dAddress='';
-  var dNote='';
   var inv={
     orderNum:orderNum,time:time,date:date,
     items:S.cart.map(function(c){
@@ -1071,10 +1069,8 @@ function printKitchen(){
       };
     }),
     totalLL:grand,rate:S.rate,delivery:delivery.on,deliveryFee:deliveryFee
-   
   };
 
-  // Non-delivery: client print only. Delivery: client + kitchen.
   document.getElementById('kt').innerHTML = buildInvoicePrintMarkup(inv, delivery.on ? 'both' : 'client');
 
   S.invoices.push(inv);persist();
@@ -1738,6 +1734,7 @@ function initUI(){
   renderCats();renderItems();renderCart();
   ['d-name','d-phone','d-address','d-note','d-fee'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('input',renderCart);
+  });
   });
 }
 load();
